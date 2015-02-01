@@ -1,0 +1,46 @@
+COM_OBJS +=\
+com/sgraph.o \
+com/smempool.o \
+com/comf.o \
+com/bs.o \
+com/rational.o \
+com/flty.o \
+com/linsys.o \
+com/xmat.o \
+com/ltype.o
+
+XPOLY_OBJS +=\
+poly.o \
+depvecs.o \
+ldtran.o
+
+EX_OBJS +=\
+example/example.o
+
+CFLAGS = -D_LINUX_ -Wno-write-strings -Wsign-promo -Wformat -Wswitch \
+        -Wsign-compare -Wpointer-arith -Wno-multichar -Winit-self -Werror=pointer-to-int-cast -Wparentheses \
+        -Wstrict-aliasing=3 -Wswitch #-D_DEBUG_ #-Wall
+        #-Werror=overloaded-virtual \
+
+INC=-I com -I .
+%.o:%.cpp
+	@echo "build $<"
+	gcc $(CFLAGS) $(INC) -O3 -c -g2 $< -o $@
+
+com_objs: $(COM_OBJS)
+xpoly_objs: $(XPOLY_OBJS)
+ex_objs: $(EX_OBJS) 
+
+xpoly: com_objs xpoly_objs ex_objs
+	gcc $(COM_OBJS) $(XPOLY_OBJS) $(EX_OBJS) $(CFLAGS) -o xpoly.exe -lstdc++ -lm
+	@echo "success!!"
+
+clean:
+	@find -name "*.o" | xargs rm -f
+	@find -name "*.exe" | xargs rm -f
+	@find -name "*.elf" | xargs rm -f
+	@find -name "*.out" | xargs rm -f
+	@find -name "*.tmp" | xargs rm -f
+	@find -name "*.asm" | xargs rm -f
+	@find -name "tags" | xargs rm -f
+

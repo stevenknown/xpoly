@@ -1,6 +1,3 @@
-# xpoly
-Polyhedral Transformation, Linear Programming Solver, Polyhedral based Dependence Analysis
-
 The software is licensed under the BSD License.
 
 This software implement several linear programming solvers, include 
@@ -18,3 +15,17 @@ mathematical objects called polytopes, performs affine transformations or more
 general non-affine transformations such as tiling on the polytopes, and then
 converts the transformed polytopes into equivalent, but optimized (depending on
 targeted optimization goal), loop nests through polyhedra scanning.
+
+NOTE: You should enable -D_DEBUG_ if you want to enable assertion and dump 
+various information.
+
+Building
+------------
+	./build_xpoly.sh or make xpoly -f Makefile.xpoly
+
+Examples
+------------
+	We give an example to solver linear programming using this software.
+    Run ./xpoly.exe
+
+Enjoy!
