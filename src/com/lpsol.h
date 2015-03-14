@@ -28,9 +28,9 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __LPSOLF_H_
 #define __LPSOLF_H_
 /* The file includes the following main components:
- * implementation of the revised simplex method.
- * implementation of the exact simplex method based on rational arithmetic.
- * implementation of the approximate simplex method based
+ * implementation of the linear programming solver.
+ * implementation of the exact simplex based
+   on rational arithmetic, and the approximate method based
    on double/float arithmetic.
  * implementation of the 0-1 integer programming solver.
  * implementation of the mixed integer programming solver. */
@@ -856,7 +856,7 @@ bool SIX<MAT, T>::construct_basic_feasible_solution(IN OUT MAT & leq,
 
 	/* Find the minimum constant term, and select the basic-variable
 	to be the swap-out one. */
-	UINT pivot_bv_idx;
+	UINT pivot_bv_idx = 0;
 	T minb;
 	for (i = 0; i < leq.get_row_size(); i++) {
 		if (i == 0) {
@@ -1014,7 +1014,7 @@ UINT SIX<MAT, T>::_solve_slack_form(IN OUT MAT & tgtf,
 			//Dumpf_Svec((void*)&bv2eqmap, D_INT);
 			//Dumpf_Svec((void*)&eq2bvmap, D_INT);.dumpf();
 		}
-	
+
 		/* Choose the nonbasic variable that coefficient is
 		positive to be the pivoting candidate. */
 		INT pivot_nv_idx = -1;
@@ -1956,7 +1956,7 @@ Return the result.
 'eq': equalites which the solution should subject to .
 'leq': inequalites which the solution should subject to .
 'rhs_idx': index number of constant column.
-	e.g: Given tgtf as [ax1, bx2, cx3, 100], then rhs_idx is 3.
+	e.g: Given tgtf as [a*x1, b*x2, c*x3, 100], then rhs_idx is 3.
 
 NOTICE:
 	The columns size of 'sol', 'tgtf', 'vc', 'eq', 'leq' must be same.

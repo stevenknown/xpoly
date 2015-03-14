@@ -40,13 +40,12 @@ Series of functions manipulate matrix.
 #define HOOK_DUMPF m_inhr.hdf
 #define HOOK_DUMPFH m_inhr.hdfh
 
-/*
-NOTICE:
-	1. We want to abstract these objects which have same operations
-		in '+' '-' '*' '/' '<' '<=' '>' '>=' '!=' '==' 'minus'.
-		These objects may be integer, real number, complex number, vector,
-		matrix, etc.
- */
+/* NOTICE:
+We want to abstract these objects which have same operations
+in '+' '-' '*' '/' '<' '<=' '>' '>=' '!=' '==' 'minus'.
+These objects may be integer, real number, complex number, vector,
+matrix, etc. */
+
 #define MAX_MAT_RANK		512
 #define MAX_QR_ITER_NUM		512
 //#define QR_ITER_WITH_SHIFT  //low precision
@@ -55,9 +54,7 @@ NOTICE:
 #define NORM_F				3 //Frobenius norm
 #define NORM_INF			4 //infinite norm
 
-/*
-Multiplification: a * b
-*/
+//Multiplification: a * b
 template <class T> class MATRIX;
 template <class T>
 MATRIX<T> operator * (MATRIX<T> const& a, MATRIX<T> const& b)
@@ -84,9 +81,7 @@ MATRIX<T> operator * (MATRIX<T> const& a, MATRIX<T> const& b)
 }
 
 
-/*
-Addition: a + b
-*/
+//Addition: a + b
 template <class T>
 MATRIX<T> operator + (MATRIX<T> const& a, MATRIX<T> const& b)
 {
@@ -107,9 +102,7 @@ MATRIX<T> operator + (MATRIX<T> const& a, MATRIX<T> const& b)
 }
 
 
-/*
-Subtraction: a - b
-*/
+//Subtraction: a - b
 template <class T>
 MATRIX<T> operator - (MATRIX<T> const& a, MATRIX<T> const& b)
 {
@@ -163,50 +156,192 @@ public:
 	T _full_permutation(UINT n);
 	void _full_permutation_recur(INT v, INT * posbuf, UINT posbufnum, INT n, T & det);
 	INT _reverse_order_number(INT * numbuf, UINT numlen);
-	bool _equal(T const& a, T const& b) const;
-	T _sqrt(T v);
-public:
-	MATRIX(INHR const* i = NULL);
-	MATRIX(const MATRIX<T> & m);
-	MATRIX(UINT row, UINT col, INHR const* i = NULL);
-	~MATRIX();
-	void set_hook(INHR const* i);
-	void init(INHR const* i = NULL);
-	void init(UINT row, UINT col, INHR const* i = NULL);
-	void reinit(UINT row, UINT col, INHR const* i = NULL);
-	void destroy();
 
-	void clean(); //Eliminating all elements.
+	//Interior equal compare.
+	bool _equal(T const& a, T const& b) const
+	{
+		if (HOOK_EQUAL != NULL) {
+			return (*HOOK_EQUAL)(a, b);
+		}
+		return a == b;
+	}
+
+	/* Interior extraction.
+	Here only apply an instantiate that simpliest call C/C++ library.
+	If it is inappropriate, overloading it as your need. */
+	T _sqrt(T v)
+	{
+		if (HOOK_SQRT != NULL) {
+			return (*HOOK_SQRT)(v);
+		}
+		IS_TRUE(0, ("_sqrt() need to implement"));
+		return v;
+	}
+public:
+	MATRIX(INHR const* i = NULL)
+	{
+		m_is_init = false;
+		init(i);
+	}
+
+	//Copy constructor
+	MATRIX(MATRIX<T> const& m)
+	{
+		m_is_init = false;
+		init();
+		copy(m);
+	}
+
+	MATRIX(UINT row, UINT col, INHR const* i = NULL)
+	{
+		m_is_init = false;
+		init(row, col, i);
+	}
+
+	~MATRIX() { destroy(); }
+
+	T abs(T v) const
+	{
+		if (v < 0) {
+			v = -(v);
+		}
+		return v;
+	}
+
+	void init(INHR const* i = NULL)
+	{
+		if (m_is_init) return;
+		init(0, 0, i);
+	}
+
+	void init(UINT row, UINT col, INHR const* i = NULL)
+	{
+		if (m_is_init) return;
+		m_row_size = 0;
+		m_col_size = 0;
+		m_mat = NULL;
+		m_is_init = true;
+		set_hook(i);
+		grow_all(row, col);
+		if (HOOK_INIT != NULL) {
+			(*HOOK_INIT)(this);
+		}
+	}
+
+	void set_hook(INHR const* i)
+	{
+		if (i) {
+			m_inhr = *i;
+		} else {
+			memset(&m_inhr, 0, sizeof(INHR));
+		}
+	}
+
+	void reinit(UINT row, UINT col, INHR const* i = NULL)
+	{
+		INHR inhr;
+		if (i != NULL) {
+			inhr = *i;
+		} else {
+			inhr = m_inhr;
+		}
+		destroy();
+		init(row, col, &inhr);
+	}
+
+	void destroy()
+	{
+		if (!m_is_init) return;
+		m_row_size = 0;
+		m_col_size = 0;
+		if (m_mat != NULL) {
+			::free(m_mat);
+		}
+		m_mat = NULL;
+		set_hook(NULL);
+		m_is_init = false;
+	}
+
+	void clean() //Eliminating all elements.
+	{
+		if (!m_is_init) return;
+		m_row_size = 0;
+		m_col_size = 0;
+		if (m_mat != NULL) {
+			::free(m_mat);
+		}
+		m_mat = NULL;
+	}
+	void copy(MATRIX<T> const& m);
 	UINT count_mem() const;
 
-	T abs(T v) const;
+	UINT get_row_size() const { return m_row_size; }
+	UINT get_col_size() const { return m_col_size; }
+	T * get_matrix() const { return m_mat; }
 
-	UINT get_row_size() const;
-	UINT get_col_size() const;
-	T * get_matrix() const;
+	/* Get element of matrix.
+	Simulating function like as 'v = m_mat[row][col]'
+	Because we allocated memory continuously, so we cannot access element
+	of 'm_mat'by 'm_mat[row][col]' directly. */
+	T get(UINT row, UINT col) const
+	{
+		IS_TRUE(m_is_init, ("not yet initialize."));
+		IS_TRUE(row < m_row_size && col < m_col_size,
+				("exception occur in get()"));
+		return *(m_mat + (m_col_size * row + col));
+	}
 	void grow_row(UINT size);
 	void grow_row(const T row[], UINT rowelemnum);
-	void grow_row(SVECTOR<T> const& row, UINT rowelemnum);
+	void grow_row(SVECTOR<T> const& row, UINT rowelemnum)
+	{
+		IS_TRUE(row.m_vec, ("vector is empty"));
+		grow_row(row.m_vec, rowelemnum);
+	}
 	void grow_row(MATRIX<T> const& a); //Add row, a must be vector
 
 	//Add row from 'from' to 'to' of a.
 	void grow_row(MATRIX<T> const& a, UINT from, UINT to);
 	void grow_col(UINT size);
 	void grow_col(const T col[], UINT colelemnum);
-	void grow_col(SVECTOR<T> const& col, UINT colelemnum);
+	void grow_col(SVECTOR<T> const& col, UINT colelemnum)
+	{
+		IS_TRUE(m_is_init, ("not yet initialize."));
+		IS_TRUE(col.m_vec, ("vector is empty"));
+		grow_col(col.m_vec, colelemnum);
+	}
 	void grow_col(MATRIX<T> const& a); //Add column, a must be vector
 
 	//Append columns from 'from' to 'to' of a.
 	void grow_col(MATRIX<T> const& a, UINT from, UINT to);
 	void grow_all(UINT row_size, UINT col_size);
-	void del_row(UINT row);
+	void del_row(UINT row)
+	{
+		IS_TRUE(m_is_init, ("not yet initialize."));
+		del_row(row, row);
+	}
 	void del_row(UINT from, UINT to);
-	void del_col(UINT col);
+	void del_col(UINT col)
+	{
+		IS_TRUE(m_is_init, ("not yet initialize."));
+		del_col(col, col);
+	}
 	void del_col(UINT from, UINT to);
 	void pad_quad(); //pad row and col to generate quad matrix
 
-	UINT size() const; //Number of elements
-	void set(UINT row, UINT col, T v);
+	//Get the number of elements.
+	UINT size() const { return m_row_size * m_col_size; }
+
+	/* Set element of matrix.
+	Simulating function like as 'm_mat[row][col] = v'
+	Because we allocated memory continuously, so we cannot access element
+	of 'm_mat' by 'm_mat[row][col]' directly. */
+	void set(UINT row, UINT col, T v)
+	{
+		IS_TRUE(m_is_init, ("not yet initialize."));
+		IS_TRUE(row < m_row_size && col < m_col_size,("exception occur in set()"));
+		*(m_mat + (m_col_size * row + col)) = v;
+	}
+
 	void setg(UINT row, UINT col, T v);
 	void set_all(T v); //Set all element to 'v'
 	void set_row(UINT rows, T row[], INT num);
@@ -219,10 +354,9 @@ public:
 	void set_col(UINT cols, T v);
 	void set_cols(UINT from, UINT to, MATRIX<T> const& m, UINT mfrom);
 	void set_cols(UINT from, UINT to, T v);
-	T get(UINT row, UINT col) const;
+
 	void interch_col(UINT col1, UINT col2);
 	void interch_row(UINT row1, UINT row2);
-	void copy(MATRIX<T> const& m);
 	void trans(); //Transpose
 
 	//Solve system of equaions, 'this' is coeff matirx
@@ -230,9 +364,18 @@ public:
 
 	//Method of least squares
 	void mls(OUT MATRIX<T> & x, IN MATRIX<T> const& b);
-	MATRIX<T> & operator = (MATRIX<T> const& m);
+
+	//Allow operation as 'x=y=z'
+	MATRIX<T> & operator = (MATRIX<T> const& m)
+	{
+		IS_TRUE(m_is_init && m.m_is_init, ("not yet initialize."));
+		copy(m);
+		return *this;
+	}
 	bool operator == (MATRIX<T> const& m) const;
-	bool operator != (MATRIX<T> const& m) const;
+
+	//Return true if matrix is not equivalent to m.
+	bool operator != (MATRIX<T> const& m) const { return !(*this == m); }
 	bool is_quad() const; //matrix is square
 	bool is_unitary() const; //matrix is I
 	bool is_symm() const; //matrix is symmetry
@@ -377,130 +520,6 @@ public:
 
 
 template <class T>
-MATRIX<T>::MATRIX(INHR const* i)
-{
-	m_is_init = false;
-	init(i);
-}
-
-
-//Copy constructor
-template <class T>
-MATRIX<T>::MATRIX(MATRIX<T> const& m)
-{
-	m_is_init = false;
-	init();
-	copy(m);
-}
-
-
-template <class T>
-MATRIX<T>::MATRIX(UINT row, UINT col, INHR const* i)
-{
-	m_is_init = false;
-	init(row, col, i);
-	//C++ does not call constructor for non-POD
-	//type when funtion invoking with '...' parameters.
-	/*
-	T * pv = (T*)(((CHAR*)&col) + sizeof(INT));
-	INT vlen = row * col;
-	UINT i = 0;
-	while (i < vlen) {
-		//T v = va_arg(arg, T);
-		m_mat[i] = *pv;
-		i++;
-		pv++;
-	}
-	*/
-}
-
-
-template <class T>
-MATRIX<T>::~MATRIX()
-{
-	destroy();
-}
-
-
-template <class T>
-void MATRIX<T>::init(INHR const* i)
-{
-	if (m_is_init) return;
-	init(0, 0, i);
-}
-
-
-template <class T>
-void MATRIX<T>::set_hook(INHR const* i)
-{
-	if (i) {
-		m_inhr = *i;
-	} else {
-		memset(&m_inhr, 0, sizeof(INHR));
-	}
-}
-
-
-template <class T>
-void MATRIX<T>::init(UINT row, UINT col, INHR const* i)
-{
-	if (m_is_init) return;
-	m_row_size = 0;
-	m_col_size = 0;
-	m_mat = NULL;
-	m_is_init = true;
-	set_hook(i);
-	grow_all(row, col);
-	if (HOOK_INIT != NULL) {
-		(*HOOK_INIT)(this);
-	}
-}
-
-
-template <class T>
-void MATRIX<T>::reinit(UINT row, UINT col, INHR const* i)
-{
-	INHR inhr;
-	if (i != NULL) {
-		inhr = *i;
-	} else {
-		inhr = m_inhr;
-	}
-	destroy();
-	init(row, col, &inhr);
-}
-
-
-template <class T>
-void MATRIX<T>::destroy()
-{
-	if (!m_is_init) return;
-	m_row_size = 0;
-	m_col_size = 0;
-	if (m_mat != NULL) {
-		::free(m_mat);
-	}
-	m_mat = NULL;
-	set_hook(NULL);
-	m_is_init = false;
-}
-
-
-//Destructing all elements.
-template <class T>
-void MATRIX<T>::clean()
-{
-	if (!m_is_init) return;
-	m_row_size = 0;
-	m_col_size = 0;
-	if (m_mat != NULL) {
-		::free(m_mat);
-	}
-	m_mat = NULL;
-}
-
-
-template <class T>
 UINT MATRIX<T>::count_mem() const
 {
 	UINT count = 0;
@@ -514,48 +533,7 @@ UINT MATRIX<T>::count_mem() const
 }
 
 
-template <class T>
-T MATRIX<T>::abs(T v) const
-{
-	if (v < 0) {
-		v = -(v);
-	}
-	return v;
-}
-
-
-/*
-Interior equal compare.
- */
-template <class T>
-bool MATRIX<T>::_equal(T const& a, T const& b) const
-{
-	if (HOOK_EQUAL != NULL) {
-		return (*HOOK_EQUAL)(a, b);
-	}
-	return a == b;
-}
-
-
-/*
-Interior extraction.
-Here only apply an instantiate that simpliest call C/C++ library.
-If it is inappropriate, overloading it as your need.
-*/
-template <class T>
-T MATRIX<T>::_sqrt(T v)
-{
-	if (HOOK_SQRT != NULL) {
-		return (*HOOK_SQRT)(v);
-	}
-	IS_TRUE(0, ("_sqrt() need to implement"));
-	return v;
-}
-
-
-/*
-Error analysis and elimination.
-*/
+//Error analysis and elimination.
 template <class T>
 void MATRIX<T>::adjust()
 {
@@ -566,22 +544,11 @@ void MATRIX<T>::adjust()
 }
 
 
-template <class T>
-UINT MATRIX<T>::size() const
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	return m_row_size * m_col_size;
-}
-
-
-/*
-Growing row of matrix.
+/* Growing row of matrix.
 
 'size': rows to be grown.
 
-NOTICE:
-	If matrix is empty, growing column vector contains 'size' rows.
-*/
+Note if matrix is empty, growing column vector contains 'size' rows. */
 template <class T>
 void MATRIX<T>::grow_row(UINT size)
 {
@@ -619,21 +586,11 @@ INIT:
 }
 
 
-template <class T>
-void MATRIX<T>::grow_row(SVECTOR<T> const& row, UINT rowelemnum)
-{
-	IS_TRUE(row.m_vec, ("vector is empty"));
-	grow_row(row.m_vec, rowelemnum);
-}
-
-
-/*
-Growing one row.
+/* Growing one row.
 'row'  row which should copy to m_mat, and 'num' descripted how
 		many columns the row is.
 If number of elememnt in 'row' less than m_col_size, set the
-		remain entries to zero.
-*/
+remain entries to zero. */
 template <class T>
 void MATRIX<T>::grow_row(const T row[], UINT rowelemnum)
 {
@@ -713,15 +670,12 @@ void MATRIX<T>::grow_row(MATRIX<T> const& a, UINT from, UINT to)
 }
 
 
-/*
-Growing column of matrix.
+/* Growing column of matrix.
 
 'size': columns to be grown.
 
-NOTICE:
-	If matrix is empty, growing column vector contains a
-	number of 'size' of columns.
-*/
+Note if matrix is empty, growing column vector contains a
+number of 'size' of columns. */
 template <class T>
 void MATRIX<T>::grow_col(UINT size)
 {
@@ -745,15 +699,6 @@ void MATRIX<T>::grow_col(UINT size)
 		return;
 	}
 	grow_all(0, size);
-}
-
-
-template <class T>
-void MATRIX<T>::grow_col(SVECTOR<T> const& col, UINT colelemnum)
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	IS_TRUE(col.m_vec, ("vector is empty"));
-	grow_col(col.m_vec, colelemnum);
 }
 
 
@@ -818,11 +763,9 @@ void MATRIX<T>::grow_col(MATRIX<T> const& a, UINT from, UINT to)
 }
 
 
-/*
-Growing one col.
+/* Growing one col.
 'col'  col which should copy to m_mat, and 'colelemnum' descripted
-	how many row the column is
-*/
+how many row the column is. */
 template <class T>
 void MATRIX<T>::grow_col(const T col[], UINT colelemnum)
 {
@@ -916,14 +859,6 @@ void MATRIX<T>::grow_all(UINT row_size, UINT col_size)
 
 
 template <class T>
-void MATRIX<T>::del_row(UINT row)
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	del_row(row, row);
-}
-
-
-template <class T>
 void MATRIX<T>::del_row(UINT from, UINT to)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -942,14 +877,6 @@ void MATRIX<T>::del_row(UINT from, UINT to)
 	::free(m_mat);
 	m_mat = tmp_mat;
 	m_row_size -= (to - from + 1);
-}
-
-
-template <class T>
-void MATRIX<T>::del_col(UINT col)
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	del_col(col, col);
 }
 
 
@@ -979,9 +906,7 @@ void MATRIX<T>::del_col(UINT from, UINT to)
 }
 
 
-/*
-Pading to quad matrix, and rank = MAX(row, col)
-*/
+//Pading to quad matrix, and rank = MAX(row, col)
 template <class T>
 void MATRIX<T>::pad_quad()
 {
@@ -997,44 +922,9 @@ void MATRIX<T>::pad_quad()
 }
 
 
-/*
-Get element of matrix
-
-Simulating function like as 'v = m_mat[row][col]'
-Because we allocated memory continuously, so we cannot access element
-of 'm_mat'by 'm_mat[row][col]' directly.
-*/
-template <class T>
-T MATRIX<T>::get(UINT row, UINT col) const
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	IS_TRUE(row < m_row_size && col < m_col_size,
-			("exception occur in get()"));
-	return *(m_mat + (m_col_size * row + col));
-}
-
-
-/*
-Set element of matrix
-
-Simulating function like as 'm_mat[row][col] = v'
-Because we allocated memory continuously, so we cannot access element
-of 'm_mat' by 'm_mat[row][col]' directly.
-*/
-template <class T>
-void MATRIX<T>::set(UINT row, UINT col, T v)
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	IS_TRUE(row < m_row_size && col < m_col_size,("exception occur in set()"));
-	*(m_mat + (m_col_size * row + col)) = v;
-}
-
-
-/*
-Set element of matrix.
+/* Set element of matrix.
 If element (row,col) out side of current range, grow the matrix to size
-of 'row' and 'col' at least. Then set that element to 'v'.
-*/
+of 'row' and 'col' at least. Then set that element to 'v'. */
 template <class T>
 void MATRIX<T>::setg(UINT row, UINT col, T v)
 {
@@ -1050,10 +940,8 @@ void MATRIX<T>::setg(UINT row, UINT col, T v)
 }
 
 
-/*
-Set all 'row' row elements of matrix
-rows: row need to set new value.
-*/
+//Set all 'row' row elements of matrix.
+//rows: row need to set new value.
 template <class T>
 void MATRIX<T>::set_row(UINT rows, T row[], INT num)
 {
@@ -1064,11 +952,9 @@ void MATRIX<T>::set_row(UINT rows, T row[], INT num)
 }
 
 
-/*
-Set all 'row' row elements with the element in matrix 'v'
-rows: row need to set
-v: v must be vector
-*/
+/* Set all 'row' row elements with the element in matrix 'v'
+rows: row need to set.
+v: v must be vector. */
 template <class T>
 void MATRIX<T>::set_row(UINT rows, MATRIX<T> const& v)
 {
@@ -1090,9 +976,7 @@ void MATRIX<T>::set_row(UINT rows, MATRIX<T> const& v)
 }
 
 
-/*
-Overlays on elements.
-*/
+//Overlays on elements.
 template <class T>
 void MATRIX<T>::set_rows(UINT from, UINT to, MATRIX<T> const& m, UINT mfrom)
 {
@@ -1120,9 +1004,7 @@ void MATRIX<T>::set_rows(UINT from, UINT to, T v)
 }
 
 
-/*
-cols: column need to set new value.
-*/
+//cols: column need to set new value.
 template <class T>
 void MATRIX<T>::set_row(UINT rows, T v)
 {
@@ -1134,10 +1016,8 @@ void MATRIX<T>::set_row(UINT rows, T v)
 }
 
 
-/*
-Set all 'col' column elements of matrix
-cols: column need to set new value.
-*/
+//Set all 'col' column elements of matrix
+//cols: column need to set new value.
 template <class T>
 void MATRIX<T>::set_col(UINT cols, T col[], INT num)
 {
@@ -1150,9 +1030,7 @@ void MATRIX<T>::set_col(UINT cols, T col[], INT num)
 }
 
 
-/*
-cols: column need to set new value.
-*/
+//cols: column need to set new value.
 template <class T>
 void MATRIX<T>::set_col(UINT cols, MATRIX<T> const& v)
 {
@@ -1176,9 +1054,7 @@ void MATRIX<T>::set_col(UINT cols, MATRIX<T> const& v)
 }
 
 
-/*
-Overlays on elements.
-*/
+//Overlays on elements.
 template <class T>
 void MATRIX<T>::set_cols(UINT from, UINT to, MATRIX<T> const& m, UINT mfrom)
 {
@@ -1206,9 +1082,8 @@ void MATRIX<T>::set_cols(UINT from, UINT to, T v)
 }
 
 
-/*
-cols: column need to set new value.
-*/
+//Set all element of column cols to be v.
+//cols: column need to set new value.
 template <class T>
 void MATRIX<T>::set_col(UINT cols, T v)
 {
@@ -1220,9 +1095,7 @@ void MATRIX<T>::set_col(UINT cols, T v)
 }
 
 
-/*
-Interchange row
-*/
+//Interchange row.
 template <class T>
 void MATRIX<T>::interch_row(UINT row1, UINT row2)
 {
@@ -1238,9 +1111,7 @@ void MATRIX<T>::interch_row(UINT row1, UINT row2)
 }
 
 
-/*
-Interchange column
-*/
+//Interchange column.
 template <class T>
 void MATRIX<T>::interch_col(UINT col1, UINT col2)
 {
@@ -1256,17 +1127,7 @@ void MATRIX<T>::interch_col(UINT col1, UINT col2)
 }
 
 
-template <class T>
-T * MATRIX<T>::get_matrix() const
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	return m_mat;
-}
-
-
-/*
-Transposing
-*/
+//This function perform matrix transposing.
 template <class T>
 void MATRIX<T>::trans()
 {
@@ -1289,9 +1150,7 @@ void MATRIX<T>::trans()
 }
 
 
-/*
-Duplication
-*/
+//Matrix duplication.
 template <class T>
 void MATRIX<T>::copy(IN MATRIX<T> const& m)
 {
@@ -1326,9 +1185,7 @@ bool MATRIX<T>::is_nonsig() const
 }
 
 
-/*
-Is a quad matrix?
-*/
+//Return true if matrix is a quad one.
 template <class T>
 bool MATRIX<T>::is_quad() const
 {
@@ -1378,10 +1235,8 @@ bool MATRIX<T>::is_symm() const
 }
 
 
-/*
-NOTICE:
-	'this' uses row convention
-*/
+//Return true if matrix is orthogonal.
+//Note current matrix uses row convention
 template <class T>
 bool MATRIX<T>::is_orth() const
 {
@@ -1400,6 +1255,7 @@ bool MATRIX<T>::is_orth() const
 }
 
 
+//Return true if matrix is equivalent to m.
 template <class T>
 bool MATRIX<T>::operator == (MATRIX<T> const& m) const
 {
@@ -1419,16 +1275,7 @@ bool MATRIX<T>::operator == (MATRIX<T> const& m) const
 }
 
 
-template <class T>
-bool MATRIX<T>::operator != (MATRIX<T> const& m) const
-{
-	return !(*this == m);
-}
-
-
-/*
-Return true if 'this' and m are homogeneous.
-*/
+//Return true if matrix and m are homogeneous.
 template <class T>
 bool MATRIX<T>::is_homo(MATRIX<T> const& m) const
 {
@@ -1669,25 +1516,7 @@ void MATRIX<T>::mul_and_add_col(UINT from, T v, UINT to)
 }
 
 
-template <class T>
-UINT MATRIX<T>::get_row_size() const
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	return m_row_size;
-}
-
-
-template <class T>
-UINT MATRIX<T>::get_col_size() const
-{
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	return m_col_size;
-}
-
-
-/*
-Set all elements with value 'v'
-*/
+//Set all elements to be value 'v'
 template <class T>
 void MATRIX<T>::set_all(T v)
 {
@@ -1715,11 +1544,11 @@ INT MATRIX<T>::_reverse_order_number(INT * numbuf, UINT numlen)
 }
 
 
-/*v: current digital need choose one slot in buf.
- *posbuf: slot buf
-  posbufnum: number of slot
-  n: natural number
- * */
+/* Helper function of fully permutation.
+v: current digital need choose one slot in buf.
+*posbuf: slot buf.
+posbufnum: number of slot.
+n: natural number. */
 template <class T>
 void MATRIX<T>::_full_permutation_recur(INT v, INT * posbuf,
 										UINT posbufnum, INT n, T & det)
@@ -1728,7 +1557,7 @@ void MATRIX<T>::_full_permutation_recur(INT v, INT * posbuf,
 		if (posbuf[i] == 0) { //slot of position 'i' in 'posbuf' is avaible.
 			posbuf[i] = v;
 			if (v == n) {
-				/*ONLY for debugging
+				/* ONLY for debugging
 				printf("\n full_perm_order: ");
 				for (INT w = 0; w < posbufnum; w++) {
 					printf("%d,",posbuf[w]);
@@ -1784,8 +1613,7 @@ T MATRIX<T>::_full_permutation(UINT n)
 }
 
 
-/*
-Calculate determinant result, only consider square matrix.
+/* Calculate determinant result, only consider square matrix.
 Fast method:
 	det(A) = (-1)^r * det(U),r is the number of times of interchanging.
 	U is upper triangular matrix.
@@ -1841,10 +1669,10 @@ T MATRIX<T>::det() const
 					detv = detv * get(i,m_row_size - 1 - i);
 				}
 			} else {
-//#define DET_M1 //M1 is slow slightly
-#ifdef DET_M1
+				//#define DET_M1 //M1 is slow slightly
+				#ifdef DET_M1
 				detv = _full_permutation(m_row_size);
-#else
+				#else
 				MATRIX<T> a = *this;
 				UINT r = 0, j;
 				for (j = 0; j < a.m_col_size; j++) {
@@ -1906,7 +1734,7 @@ T MATRIX<T>::det() const
 				if (ODD(r)) {
 					detv = -(detv);
 				}
-#endif
+				#endif
 			}
 		}
 	}
@@ -1915,24 +1743,9 @@ FIN:
 }
 
 
-//Allow operation as 'x=y=z'
-template <class T>
-MATRIX<T> & MATRIX<T>::operator = (MATRIX<T> const& m)
-{
-	IS_TRUE(m_is_init && m.m_is_init, ("not yet initialize."));
-	copy(m);
-	return *this;
-}
-
-
-/*
-Return true if matrix is nonsingular, otherwise return false.
-
+/* Return true if matrix is nonsingular, otherwise return false.
 'e': inverted matrix.
-
-NOTICE:
-	'this' must use row convention.
-*/
+Note matrix must be use row convention. */
 template <class T>
 bool MATRIX<T>::inv(OUT MATRIX<T> & e)
 {
@@ -2040,13 +1853,11 @@ FIN:
 }
 
 
-/*
-Full rank-decomposition
+/* Full rank-decomposition
 
 'f': m*r full rank matrix
 'g': r*n full rank matrix
-Let A is m*n matrix, rank is r, and A,f,g satisfied A=f*g.
-*/
+Let A is m*n matrix, rank is r, and A,f,g satisfied A=f*g. */
 template <class T>
 void MATRIX<T>::frd(OUT MATRIX<T> & f, OUT MATRIX<T> & g)
 {
@@ -2068,8 +1879,7 @@ void MATRIX<T>::frd(OUT MATRIX<T> & f, OUT MATRIX<T> & g)
 }
 
 
-/*
-Computation of left-inverse of column full rank matrix.
+/* Computation of left-inverse of column full rank matrix.
 
 'x': left-inverse
 
@@ -2094,8 +1904,7 @@ bool MATRIX<T>::linv(OUT MATRIX<T> & x)
 }
 
 
-/*
-Computation of right-inverse of row full rank matrix.
+/* Computation of right-inverse of row full rank matrix.
 
 'x': right-inverse
 
@@ -2120,8 +1929,7 @@ bool MATRIX<T>::rinv(OUT MATRIX<T> & x)
 }
 
 
-/*
-Calculation of Moore-Penrose inverse matrix.
+/* Calculation of Moore-Penrose inverse matrix.
 Return true if matrix is nonsingular, otherwise return false.
 
 'x': pseudo-inverse
@@ -2142,8 +1950,7 @@ void MATRIX<T>::pinv(OUT MATRIX<T> & x)
 }
 
 
-/*
-Calculation of {1,4}-inverse matrix.
+/* Calculation of {1,4}-inverse matrix.
 
 'x': least-square inverse
 
@@ -2161,8 +1968,7 @@ void MATRIX<T>::lstinv(OUT MATRIX<T> & x)
 }
 
 
-/*
-Calculation of {1,3}-inverse matrix.
+/* Calculation of {1,3}-inverse matrix.
 
 'x': least-norm inverse
 
@@ -2180,8 +1986,7 @@ void MATRIX<T>::minv(OUT MATRIX<T> & x)
 }
 
 
-/*
-Calculation of {1,2}-inverse matrix.
+/* Calculation of {1,2}-inverse matrix.
 Return true if matrix is nonsingular, otherwise return false.
 
 'x': reflexive inverse
@@ -2206,8 +2011,7 @@ void MATRIX<T>::refinv(OUT MATRIX<T> & x)
 }
 
 
-/*
-Calculation of {1}-inverse matrix.
+/* Calculation of {1}-inverse matrix.
 Return true if matrix is nonsingular, otherwise return false.
 
 Matrix {1}-inverse is a special case of a general type of pseudoinverse
@@ -2255,8 +2059,7 @@ bool MATRIX<T>::ginv(OUT MATRIX<T> & x)
 		return false;
 	}
 
-	/*
-	Computing matrix {1}-inverse
+	/* Computing matrix {1}-inverse
 	Generate P,Q, that makes PAQ=J, where J is [I 0],
 											   [0 0]
 	and Ag is Q[I X]P.
@@ -2270,11 +2073,9 @@ bool MATRIX<T>::ginv(OUT MATRIX<T> & x)
 	MATRIX<T> tmpthis = *this;
 	UINT rankr = 0, row, col;
 
-	/*
-	Generating nonsingular matrix P, that obtained by performing the
+	/* Generating nonsingular matrix P, that obtained by performing the
 	same operations which to reduce 'A' to the matrix with (rank*rank)
-	identity sub-matrix on left-corner on the identity matrix.
-	*/
+	identity sub-matrix on left-corner on the identity matrix. */
 
 	//Generating P by row elementary operations.
 	for (row = 0, col = 0;
@@ -2432,12 +2233,8 @@ void MATRIX<T>::getdiag(OUT MATRIX<T> & v)
 }
 
 
-/*
-Initialize diagonal entry of vector v
-
-NOTICE:
-	'v' is vector
-*/
+//Initialize diagonal entry of vector v.
+//NOTICE: 'v' is vector.
 template <class T>
 void MATRIX<T>::setdiag(IN MATRIX<T> const& v)
 {
@@ -2644,10 +2441,8 @@ bool MATRIX<T>::is_anti_low_triangular() const
 }
 
 
-/*
-Reduce matrix to row-echelon normal form, that the pivot diagonal element
-to 1, and other elements in column are zero.
-*/
+//Reduce matrix to row-echelon normal form, that the pivot diagonal element
+//to 1, and other elements in column are zero.
 template <class T>
 void MATRIX<T>::eche()
 {
@@ -2658,14 +2453,11 @@ void MATRIX<T>::eche()
 }
 
 
-/*
-Calculate Basis of rows vector.
+/* Calculate Basis of rows vector.
 
 'b': use row convention. Each row indicate one basis
 
-NOTICE:
-	'this' uses row convention.
-*/
+NOTICE: 'this' uses row convention. */
 template <class T>
 void MATRIX<T>::basis(OUT MATRIX<T> & b)
 {
@@ -2679,9 +2471,7 @@ void MATRIX<T>::basis(OUT MATRIX<T> & b)
 }
 
 
-/*
-Calculate Algebraic Complement of element A(row,col).
-*/
+//Calculate Algebraic Complement of element A(row,col).
 template <class T>
 void MATRIX<T>::algc(UINT row, UINT col, OUT MATRIX<T> & m)
 {
@@ -2706,9 +2496,7 @@ void MATRIX<T>::algc(UINT row, UINT col, OUT MATRIX<T> & m)
 }
 
 
-/*
-Calculate classical Adjoint Matrix.
-*/
+//Calculate classical Adjoint Matrix.
 template <class T>
 bool MATRIX<T>::adj(OUT MATRIX<T> & m)
 {
@@ -2751,8 +2539,7 @@ bool MATRIX<T>::adj(OUT MATRIX<T> & m)
 }
 
 
-/*
-Compute Null Space.
+/* Compute Null Space.
 Null Space of A as the general result of formular of Ax=0.
 
 Null space is represented implicitly by matrix A.
@@ -2779,9 +2566,7 @@ each step.
 		That is any combinations of basis of null space are pertain to
 		null space of 'this'.
 
-NOTICE:
-	'this' uses row convention.
- */
+NOTICE: 'this' uses row convention. */
 template <class T>
 void MATRIX<T>::null(OUT MATRIX<T> & ns)
 {
@@ -2789,16 +2574,13 @@ void MATRIX<T>::null(OUT MATRIX<T> & ns)
 	ns.reinit(m_col_size, m_col_size, &m_inhr);
 	MATRIX<T> tmp;
 
-	/*
-	Reduce matrix to echelon form.
+	/* Reduce matrix to echelon form.
 	This operation usually generates the general form solution of Ax=0.
 	Since augmented vector be always zero, we ignored last column during
-	each step.
-	*/
+	each step. */
 	this->rank(&tmp, true);
 
-	/*
-	Format the generating solution to combination of vectors, and
+	/* Format the generating solution to combination of vectors, and
 	using free(unconstrained) variables as the weight of vector.
 	e.g:
 		The combination of vectors:
@@ -2842,8 +2624,7 @@ T MATRIX<T>::tr()
 }
 
 
-/*
-Compute rank of 'this', and the corresponded linear indepent vectors store
+/* Compute rank of 'this', and the corresponded linear indepent vectors store
 as row convention.
 
 'basis': output the matrix that is transformed in
@@ -2854,9 +2635,8 @@ as row convention.
 
 NOTICE:
 	In actually the estimation of rank is not a simply problem.
-		See details in "Numerical Linear Algebra and Optimization" ,
-		Philip E. Gill.
-*/
+	See details in "Numerical Linear Algebra and Optimization" ,
+	Philip E. Gill. */
 template <class T>
 UINT MATRIX<T>::rank(OUT MATRIX<T> * basis, bool is_unitarize)
 {
@@ -2993,9 +2773,7 @@ void MATRIX<T>::insert_row_before(UINT ridx)
 }
 
 
-/*
-Inserting empty rows before 'ridx'.
-*/
+//Inserting empty rows before 'ridx'.
 template <class T>
 void MATRIX<T>::insert_rows_before(UINT ridx, UINT rnum)
 {
@@ -3019,10 +2797,8 @@ void MATRIX<T>::insert_rows_before(UINT ridx, UINT rnum)
 }
 
 
-/*
-Insert rows before 'ridx' which rows copy from matrix 'm'
-from 'from' to 'to'.
-*/
+//Insert rows before 'ridx' which rows copy from matrix 'm'
+//from 'from' to 'to'.
 template <class T>
 void MATRIX<T>::insert_rows_before(UINT ridx, IN MATRIX<T> const& m,
 								   UINT mfrom, UINT mto)
@@ -3047,9 +2823,7 @@ void MATRIX<T>::insert_rows_before(UINT ridx, IN MATRIX<T> const& m,
 }
 
 
-/*
-Inserting one empty column before 'cidx'.
-*/
+//Inserting one empty column before 'cidx'.
 template <class T>
 void MATRIX<T>::insert_col_before(UINT cidx)
 {
@@ -3069,9 +2843,7 @@ void MATRIX<T>::insert_col_before(UINT cidx)
 }
 
 
-/*
-Insert the number 'cnum' of empty columns before 'cidx'.
-*/
+//Insert the number 'cnum' of empty columns before 'cidx'.
 template <class T>
 void MATRIX<T>::insert_cols_before(UINT cidx, UINT cnum)
 {
@@ -3095,10 +2867,8 @@ void MATRIX<T>::insert_cols_before(UINT cidx, UINT cnum)
 }
 
 
-/*
-Inserting columns before 'cidx' which columns copy from matrix 'm'
-from 'from' to 'to'.
-*/
+//Inserting columns before 'cidx' which columns copy from matrix 'm'
+//from 'from' to 'to'.
 template <class T>
 void MATRIX<T>::insert_cols_before(UINT cidx, IN MATRIX<T> const& m,
 								   UINT mfrom, UINT mto)
@@ -3123,10 +2893,8 @@ void MATRIX<T>::insert_cols_before(UINT cidx, IN MATRIX<T> const& m,
 }
 
 
-/*
-Get inner matrix at starting point
-(sr,sl) in matrix, and end point (er,el).
-*/
+//Get inner matrix at starting point
+//(sr,sl) in matrix, and end point (er,el).
 template <class T>
 void MATRIX<T>::inner(MATRIX<T> & in,
 					UINT sr, UINT sl, UINT er, UINT el) const
@@ -3145,9 +2913,7 @@ void MATRIX<T>::inner(MATRIX<T> & in,
 }
 
 
-/*
-Get inner rows.
-*/
+//Get inner rows.
 template <class T>
 void MATRIX<T>::inner_row(OUT MATRIX<T> & in, UINT from, UINT to) const
 {
@@ -3157,9 +2923,7 @@ void MATRIX<T>::inner_row(OUT MATRIX<T> & in, UINT from, UINT to) const
 }
 
 
-/*
-Get inner columns.
-*/
+//Get inner columns.
 template <class T>
 void MATRIX<T>::inner_col(OUT MATRIX<T> & in, UINT from, UINT to) const
 {
@@ -3169,14 +2933,11 @@ void MATRIX<T>::inner_col(OUT MATRIX<T> & in, UINT from, UINT to) const
 }
 
 
-/*
-Pivot Triangular Decomposition.
+/* Pivot Triangular Decomposition.
 Compute P,L,U in terms of the formula: PA = LU,
 where P:Permute MatrixL, L:Lower triangular matrix, U: upper triangular matrix.
 
-NOTICE:
-	1.The precision of 'T' may has serious effect.
-*/
+NOTICE: The precision of 'T' may has serious effect. */
 template <class T>
 bool MATRIX<T>::plu(OUT MATRIX<T> & p, OUT MATRIX<T> & l, OUT MATRIX<T> & u)
 {
@@ -3259,14 +3020,11 @@ FIN:
 }
 
 
-/*
-LU Decomposition.
+/* LU Decomposition.
 Compute L,U in terms of the formula: A = LU,
 where L:Lower triangular matrix, U: upper triangular matrix.
 
-NOTICE:
-	1.The precision of 'T' may has serious effect.
-*/
+NOTICE: The precision of 'T' may has serious effect. */
 template <class T>
 bool MATRIX<T>::lu(OUT MATRIX<T> & l, OUT MATRIX<T> & u)
 {
@@ -3304,12 +3062,10 @@ bool MATRIX<T>::lu(OUT MATRIX<T> & l, OUT MATRIX<T> & u)
 				continue; //try next column, trapezoid matrix
 			}
 			if (swap_row != (INT)row) {
-				/*
-				Can not reduce to up triangular form.
+				/* Can not reduce to up triangular form.
 				Theroem:
-					There is no LU decomposition can be find if A
-					has a singular sub matrix in upper-left corner.
-				*/
+				There is no LU decomposition can be find if A
+				has a singular sub matrix in upper-left corner. */
 				goto FIN;
 			}
 			col = w; //Record current non-zero column
@@ -3334,10 +3090,7 @@ bool MATRIX<T>::lu(OUT MATRIX<T> & l, OUT MATRIX<T> & u)
 	}//end for (INT row = 0...
 
 	for (i = 0; i < l.m_row_size; i++) {
-		/*
-		Reduce pivot entry to unitary, dividing  sub-entry
-		by pivot entry.
-		*/
+		//Reduce pivot entry to unitary, dividing  sub-entry by pivot entry.
 		T tmp = 1 / l.get(i, i);
 
 		l.mul_of_col(i, tmp);
@@ -3348,8 +3101,7 @@ FIN:
 }
 
 
-/*
-QR Decomposition.
+/* QR Decomposition.
 Function produces an upper triangular matrix R of the same
 dimension as row of A and a unitary matrix Q(orthonomal basis)
 so that A = Q*R.
@@ -3389,8 +3141,7 @@ NOTICE:
 		otherwise 'calc_basis' must set to 'true', then basis of A be
 		computed, and the out put Q*R equals basis(A).
 
-	3.The precision of 'T' may has serious effect.
-*/
+	3.The precision of 'T' may has serious effect. */
 template <class T>
 void MATRIX<T>::qr(OUT MATRIX<T> & q, OUT MATRIX<T> & r, bool calc_basis)
 {
@@ -3424,12 +3175,8 @@ void MATRIX<T>::qr(OUT MATRIX<T> & q, OUT MATRIX<T> & r, bool calc_basis)
 }
 
 
-/*
-Normalize each row vector.
-
-NOTICE:
-	'this' uses row convention.
-*/
+//Normalize each row vector.
+//NOTICE: 'this' uses row convention.
 template <class T>
 void MATRIX<T>::nml()
 {
@@ -3444,15 +3191,12 @@ void MATRIX<T>::nml()
 }
 
 
-/*
-Permute QR Decomposition.
+/* Permute QR Decomposition.
 Function produces a permutation matrix p, an upper triangular
 matrix R of the same dimension as A and a unitary matrix Q so that AP = Q*R.
 The column permutation p is chosen so that abs(diag(R)) is decreasing.
 
-NOTICE:
-	1.The precision of 'T' may has serious effect.
-*/
+NOTICE: The precision of 'T' may has serious effect. */
 template <class T>
 bool MATRIX<T>::pqr(MATRIX<T> & p, MATRIX<T> & q, MATRIX<T> & r)
 {
@@ -3464,9 +3208,7 @@ FIN:
 }
 
 
-/*
-Compute Dot Product between referred 'row' and 'v'.
-*/
+//Compute Dot Product between referred 'row' and 'v'.
 template <class T>
 T MATRIX<T>::dotrow(UINT row, IN MATRIX<T> const& v) const
 {
@@ -3476,9 +3218,7 @@ T MATRIX<T>::dotrow(UINT row, IN MATRIX<T> const& v) const
 }
 
 
-/*
-Compute Dot Product between referred 'col' and 'v'.
-*/
+//Compute Dot Product between referred 'col' and 'v'.
 template <class T>
 T MATRIX<T>::dotcol(UINT col, IN MATRIX<T> const& v) const
 {
@@ -3488,10 +3228,8 @@ T MATRIX<T>::dotcol(UINT col, IN MATRIX<T> const& v) const
 }
 
 
-/*
-Compute Dot Product.
-v: v must be a row/col vector.
-*/
+//Compute Dot Product.
+//v: v must be a row/col vector.
 template <class T>
 T MATRIX<T>::dot(IN MATRIX<T> const& v) const
 {
@@ -3531,16 +3269,15 @@ T MATRIX<T>::dot(IN MATRIX<T> const& v) const
 }
 
 
-/*
+/* Compute the dot production.
+
 'srow': starting row
 'scol': starting column
 'erow': ending row
 'ecol': ending column
 'v': value matrix, must be a row/col vector.
 
-NOTICE:
-	'srow, scol, erow, ecol'  must express one vector.
-*/
+NOTICE: 'srow, scol, erow, ecol'  must express one vector. */
 template <class T>
 T MATRIX<T>::dot(UINT srow, UINT scol,
 				 UINT erow, UINT ecol, IN MATRIX<T> const& v) const
@@ -3584,13 +3321,11 @@ T MATRIX<T>::dot(UINT srow, UINT scol,
 }
 
 
-/*
-Compute Dot Product between.
+/* Compute Dot Product between.
 srow: starting row, scol:starting column, erow:end row, ecol:end column.
 
 'srow, scol, erow, ecol'  must express one vector.
-'v': v must be a row/col vector.
-*/
+'v': v must be a row/col vector. */
 template <class T>
 T MATRIX<T>::dot(UINT srow, UINT scol, UINT erow, UINT ecol,
 				IN MATRIX<T> const& v, UINT vsrow, UINT vscol,
@@ -3643,14 +3378,12 @@ T MATRIX<T>::dot(UINT srow, UINT scol, UINT erow, UINT ecol,
 }
 
 
-/*
-Vector Product(cross product).
+/* Vector Product(cross product).
 Given two vector [a1, b1, c1], [a2, b2, c2], the vector product is:
 [b1*c2-c1*b2, c1*a2-a1*c2, a1*b2-b1*a2].
 
 'v': v must be row/col vector with three dimensions.
-'u': cross product
-*/
+'u': cross product. */
 template <class T>
 void MATRIX<T>::cross(IN MATRIX<T> & v, OUT MATRIX<T> & u)
 {
@@ -3690,14 +3423,11 @@ void MATRIX<T>::cross(IN MATRIX<T> & v, OUT MATRIX<T> & u)
 }
 
 
-/*
-Orthogonalization and Normalization by Gram-Schmidt method.
+/* Orthogonalization and Normalization by Gram-Schmidt method.
 
 'z': use row convention.
 
-NOTICE:
-	'this' is a row vector
- */
+NOTICE: matrix is a row vector. */
 template <class T>
 void MATRIX<T>::orthn(OUT MATRIX<T> & z)
 {
@@ -3730,8 +3460,7 @@ void MATRIX<T>::orthn(OUT MATRIX<T> & z)
 }
 
 
-/*
-Orthogonalization by Gram-Schmidt method.
+/* Orthogonalization by Gram-Schmidt method.
 
 'z': Each row of vectors are orthogonalized mutually.
 	It uses row convention.
@@ -3739,8 +3468,7 @@ Orthogonalization by Gram-Schmidt method.
 NOTICE:
 	'this' use row convention.
 	Each rows of vectors should be independent mutually.
-	Or else zero vector	was generated.
- */
+	Or else zero vector	was generated. */
 template <class T>
 void MATRIX<T>::orth(OUT MATRIX<T> & z)
 {
@@ -3780,8 +3508,7 @@ void MATRIX<T>::orth(OUT MATRIX<T> & z)
 }
 
 
-/*
-Methods of  least squares to get approximate solution.
+/* Methods of  least squares to get approximate solution.
 
 'x': result of system equations
 	X = x1*v1 + x2*v2 + ...	xn*vn + c,  X is n*n if result has no
@@ -3793,9 +3520,7 @@ Methods of  least squares to get approximate solution.
 
 'b': constant vector.
 
-NOTICE:
-	A is row convention, and each column indicate  the unknown.
-*/
+NOTICE: A is row convention, and each column indicate  the unknown. */
 template <class T>
 void MATRIX<T>::mls(OUT MATRIX<T> & x, IN MATRIX<T> const& b)
 {
@@ -3812,8 +3537,7 @@ void MATRIX<T>::mls(OUT MATRIX<T> & x, IN MATRIX<T> const& b)
 }
 
 
-/*
-Solving system of linear equations.
+/* Solving system of linear equations.
 Return true if the solution is unique, othwise return false, and x is
 generating solution.
 
@@ -3832,8 +3556,7 @@ NOTICE:
 	1. A is invertable, so is LU decomposable as well, the result is unique.
 		To get approximatest solution, call mls().
 	2. A is row convention, and each column indicate the unknown.
-	3.If 'this' is singular, compute the general solution utilize null().
-*/
+	3.If 'this' is singular, compute the general solution utilize null(). */
 template <class T>
 bool MATRIX<T>::sse(OUT MATRIX<T> & x, IN MATRIX<T> const& b)
 {
@@ -3855,22 +3578,18 @@ bool MATRIX<T>::sse(OUT MATRIX<T> & x, IN MATRIX<T> const& b)
 		return true;
 	}
 
-	/*
-	det() is zero, there are two case:
-	1.no solution 2.infinitely many solutions
-	*/
+	//det() is zero, there are two case:
+	//1.no solution 2.infinitely many solutions
 
 	//Computing general solution.
 	MATRIX<T> tmp = *this;
 
-	/*
-	Here we use the function null() to reduce and format one
+	/* 	Here we use the function null() to reduce and format one
 	generating solution.
 	However, function null() regard the last column of 'tmp' as
 	one variable when we invoke grow_col(b).
 	Consequently, to get the correct solution from output of null(), the
-	sign of the last column must be negative value of original.
-	*/
+	sign of the last column must be negative value of original. */
 	tmp.grow_col(b);
 	tmp.null(x);
 
@@ -3881,9 +3600,7 @@ bool MATRIX<T>::sse(OUT MATRIX<T> & x, IN MATRIX<T> const& b)
 }
 
 
-/*
-Compute Modular of vector
-*/
+//Compute Modular of vector
 template <class T>
 T MATRIX<T>::mod()
 {
@@ -3909,9 +3626,7 @@ T MATRIX<T>::mod()
 }
 
 
-/*
-Compute Modular of one of row
-*/
+//Compute Modular of one of row
 template <class T>
 T MATRIX<T>::modrow(UINT row)
 {
@@ -3927,9 +3642,7 @@ T MATRIX<T>::modrow(UINT row)
 }
 
 
-/*
-Compute Modular of one of col
-*/
+//Compute Modular of one of col
 template <class T>
 T MATRIX<T>::modcol(UINT col)
 {
@@ -3945,14 +3658,11 @@ T MATRIX<T>::modcol(UINT col)
 }
 
 
-/*
-Computation of eigenvalues.
+/* Computation of eigenvalues.
 
 'eigv': is a vector containing the eigenvalues of a square matrix.
 
-NOTICE:
-	'this' matrix must be row-vector matrix
-*/
+NOTICE: matrix must be row-vector matrix. */
 template <class T>
 void MATRIX<T>::eig(OUT MATRIX<T> & eigv)
 {
@@ -3962,7 +3672,7 @@ void MATRIX<T>::eig(OUT MATRIX<T> & eigv)
 	MATRIX<T> q,r;
 	UINT count = 0;
 	while (!v.is_low_triangular() && count < MAX_QR_ITER_NUM) {
-#ifdef QR_ITER_WITH_SHIFT
+		#ifdef QR_ITER_WITH_SHIFT
 		MATRIX<T> i(m_row_size, m_col_size, &m_inhr);
 		i.eye(v.get(v.m_row_size -1 , v.m_col_size - 1));
 		v = v - i;
@@ -3970,11 +3680,11 @@ void MATRIX<T>::eig(OUT MATRIX<T> & eigv)
 		v = r*q;
 		v.trans(); //v must use row convention.
 		v = v + i;
-#else
+		#else
 		v.qr(q,r);
 		v = r*q;
 		v.trans(); //v must use row convention.
-#endif
+		#endif
 		count++;
 	}
 	IS_TRUE(v.is_quad() && v.m_row_size == m_row_size, ("A must be square."));
@@ -4000,8 +3710,7 @@ void MATRIX<T>::eig(OUT MATRIX<T> & eigv)
 }
 
 
-/*
-Computation of eigenvalues and eigenvectors.
+/* Computation of eigenvalues and eigenvectors.
 
 'eigv': is a matrix containing the eigenvalues of a square matrix.
 	It is diagonal matrix
@@ -4010,9 +3719,7 @@ Computation of eigenvalues and eigenvectors.
 	eigenvectors so that A*eigX = eigX*eigV.
 	It uses col convention.
 
-NOTICE:
-	'this' matrix must be row-vector matrix
-*/
+NOTICE: matrix must be row-vector matrix. */
 template <class T>
 void MATRIX<T>::eig(OUT MATRIX<T> & eigv, OUT MATRIX<T> & eigx)
 {
@@ -4056,15 +3763,13 @@ void MATRIX<T>::eig(OUT MATRIX<T> & eigv, OUT MATRIX<T> & eigx)
 }
 
 
-/*
-Computation of projection of vector 'v' in row space of 'this'.
+/* Computation of projection of vector 'v' in row space of 'this'.
 
 'p': projection of v
 'v': vector to project .
 
 NOITCE: 1. each row of 'this' must be orthogonal base of one space.
-		2. 'this' uses row convention.
-*/
+		2. 'this' uses row convention. */
 template <class T>
 void MATRIX<T>::proj(OUT MATRIX<T> & p, IN MATRIX<T> const& v)
 {
@@ -4086,26 +3791,22 @@ void MATRIX<T>::proj(OUT MATRIX<T> & p, IN MATRIX<T> const& v)
 }
 
 
-/*
-Strange Value decomposition
+/* Strange Value decomposition
 A = u*s*eigx, 'this' is m*n matrix.
 
 'u': is m*m orthonormal matrix, col vector form arrangement.
 's': m*n stanger value matrix, diagonal matrix.
-'eigx': n*n  orthonormal matrix,  row vector form arrangement.
-*/
+'eigx': n*n  orthonormal matrix,  row vector form arrangement. */
 template <class T>
 bool MATRIX<T>::svd(OUT MATRIX<T> & u, OUT MATRIX<T> & s, OUT MATRIX<T> & eigx)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
 	if (m_row_size < m_col_size) {
-		/*
-		Assuming that A is 2*3, then B=trans(A)*A is  3*3 matrix.
+		/* Assuming that A is 2*3, then B=trans(A)*A is  3*3 matrix.
 		When we computing SVD of trans(A) instead of A, and B is A*trans(A),
 		the 2*2 matrix.
 		It is simpler to compute the EIGX,EIGV than those of A.
-		Because A=USV, so trans(A) = trans(V)*trans(S)*trans(U).
-		*/
+		Because A=USV, so trans(A) = trans(V)*trans(S)*trans(U). */
 		MATRIX<T> transA = *this;
 		transA.trans();
 		bool res = transA.svd(u, s, eigx);
@@ -4164,12 +3865,10 @@ bool MATRIX<T>::svd(OUT MATRIX<T> & u, OUT MATRIX<T> & s, OUT MATRIX<T> & eigx)
 		subU.grow_row(tmp);
 	}
 
-	/*
-	To construct U, we need the quad-matrix to present R^n space,
+	/* To construct U, we need the quad-matrix to present R^n space,
 	and the first rth axis composed 'subU'.
 	So we compute the NulA of u1, namely, the result
-	of 'RowA(subU) * x = 0'.
-	*/
+	of 'RowA(subU) * x = 0'. */
 	if (scount < m_row_size) {
 		MATRIX<T> nulofu1, tmpu;
 		subU.null(nulofu1); //nulofu1 uses col convention.
@@ -4193,8 +3892,7 @@ bool MATRIX<T>::svd(OUT MATRIX<T> & u, OUT MATRIX<T> & s, OUT MATRIX<T> & eigx)
 }
 
 
-/*
-Diagonalize matrix, form as A = P*D*inv(P), P is eigen space of eahc
+/* Diagonalize matrix, form as A = P*D*inv(P), P is eigen space of eahc
 eigen value.
 D is diagonal matrix that diagonal entry is eigen value.
 
@@ -4204,9 +3902,7 @@ Return true if it is diagonalizable, otherwise return false.
 	It uses col convention..
 'd': eigen value matrix. It was diagonally.
 
-NOTICE:
-	'this' use row convention.
-*/
+NOTICE: matrix use row convention. */
 template <class T>
 bool MATRIX<T>::diag(OUT MATRIX<T> & p, OUT MATRIX<T> & d)
 {
@@ -4221,14 +3917,11 @@ bool MATRIX<T>::diag(OUT MATRIX<T> & p, OUT MATRIX<T> & d)
 }
 
 
-/*
-Calculate matrix/vector norm.
+/* Calculate matrix/vector norm.
 
 'p': can be 1, 2, infinite.
 
-NOTICE:
-	1. 'this' uses row convention.
-*/
+NOTICE: matrix uses row convention. */
 template <class T>
 T MATRIX<T>::norm(INT p)
 {
@@ -4300,13 +3993,11 @@ T MATRIX<T>::norm(INT p)
 }
 
 
-/*
-Condition number for Frobenius Norm.
+/* Condition number for Frobenius Norm.
 
 k(A) = norm(A) * norm(inv(A))
 
-Return true if 'this' is nonsingular matrix.
-*/
+Return true if 'this' is nonsingular matrix. */
 template <class T>
 bool MATRIX<T>::cond(T & c, INT p)
 {
@@ -4320,14 +4011,11 @@ bool MATRIX<T>::cond(T & c, INT p)
 }
 
 
-/*
-Spectral radius
+/* Spectral radius.
 
 Specrad = max|lamda(i)|, i=1~N-1
 
-NOTICE:
-	'this' matrix must be row-vector matrix
-*/
+NOTICE: matrix must be row-vector matrix. */
 template <class T>
 T MATRIX<T>::sprad()
 {
@@ -4346,17 +4034,14 @@ T MATRIX<T>::sprad()
 }
 
 
-/*
-Complement remainding rows for partial matrix to generate nonsingular matrix.
+/* Complement remainding rows for partial matrix to generate nonsingular matrix.
 To obtain an invertible square matrix, we extend 'this' to a basis by simply
 adding linearly independent unit vectors at the bottom of 'this'.each of which
 spawns one missing dimension.
 e.g:
 	Given matrix is [1,1], the output matrix is [1,1][0,1]
 
-NOTICE:
-	The partial rows of matrix must be independent.
-*/
+NOTICE: The partial rows of matrix must be independent. */
 template <class T>
 void MATRIX<T>::padding()
 {
@@ -4377,10 +4062,8 @@ void MATRIX<T>::padding()
 	for (UINT i = 0; i < tmp.m_row_size; i++) {
 		for (UINT j = 0; j < tmp.m_col_size; j++) {
 			if (tmp.get(i,j) != 0) {
-				/*
-				Set followed element to zero.
-				e.g: row is [0,2,4,-1], then set last two be zero [0,2,0,0]
-				*/
+				//Set followed element to zero.
+				//e.g: row is [0,2,4,-1], then set last two be zero [0,2,0,0]
 				for (UINT k = j+1; k < tmp.m_col_size; k++) {
 					tmp.set(i,k,0);
 				}
@@ -4494,9 +4177,7 @@ void MATRIX<T>::dumpf(CHAR * name, bool is_del) const
 }
 
 
-/*
-Print as real number even though T is integer.
-*/
+//Print as real number even though T is integer.
 template <class T>
 void MATRIX<T>::dumps() const
 {
@@ -4533,4 +4214,3 @@ void MATRIX<T>::dumps() const
 }
 //END MATRIX
 #endif
-

@@ -871,7 +871,7 @@ bool LINEQ::has_solution(IN RMAT const& leq, IN RMAT const& eq,
 	coeff = eq+leq;
 	coeff.dumpf();
 	coeff.null(ns); //solving A¦Ó*y¦Ó=0 via computing Null Space of 'coeff'.
-	ns.dumpf(); 
+	ns.dumpf();
 	*/
 	if (leq.size() == 0 && eq.size() == 0) {
 		return false;
@@ -1602,7 +1602,7 @@ bool LINEQ::cvt_cs2ray(OUT INTMAT & gmat, IN INTMAT const& cs,
 			return false;
 		}
 	} //end while
-	
+
 	bool is_homo = cs.is_colequ(rhs_idx, 0);
 	if (!is_homo) {
 		/* The last variable of extremal vector is the coefficient of

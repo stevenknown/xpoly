@@ -27,5 +27,9 @@ Examples
 ------------
 	We give an example to solver linear programming using this software.
     Run ./xpoly.exe
+ 	
+	We also give an example to show how to use XPoly as loop transformation engine in gcc.
+	In file tran_gcc_graphite.cpp and tran_gcc_graphite.h, we transform graphite scop to
+	apply msicellaneous loop optimizations.    
 
 Enjoy!

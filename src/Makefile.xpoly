@@ -9,30 +9,30 @@ com/linsys.o \
 com/xmat.o \
 com/ltype.o
 
-XPOLY_OBJS +=\
-poly.o \
-depvecs.o \
-ldtran.o
+ENG_OBJS +=\
+eng/poly.o \
+eng/depvecs.o \
+eng/ldtran.o
 
 EX_OBJS +=\
 example/example.o
 
 CFLAGS = -D_LINUX_ -Wno-write-strings -Wsign-promo -Wformat -Wswitch \
-        -Wsign-compare -Wpointer-arith -Wno-multichar -Winit-self -Werror=pointer-to-int-cast -Wparentheses \
-        -Wstrict-aliasing=3 -Wswitch #-D_DEBUG_ #-Wall
+        -Wformat -Wsign-compare -Wpointer-arith -Wno-multichar -Winit-self -Wuninitialized -Wmaybe-uninitialized -Wtype-limits \
+        -Wstrict-aliasing=3 -finline-limit=10000000 -Wswitch -O2 #-D_DEBUG_ #-Wall
         #-Werror=overloaded-virtual \
 
-INC=-I com -I .
+INC=-I com -I eng
 %.o:%.cpp
 	@echo "build $<"
 	gcc $(CFLAGS) $(INC) -O3 -c -g2 $< -o $@
 
 com_objs: $(COM_OBJS)
-xpoly_objs: $(XPOLY_OBJS)
+eng_objs: $(ENG_OBJS)
 ex_objs: $(EX_OBJS) 
 
-xpoly: com_objs xpoly_objs ex_objs
-	gcc $(COM_OBJS) $(XPOLY_OBJS) $(EX_OBJS) $(CFLAGS) -o xpoly.exe -lstdc++ -lm
+xpoly_example.exe: com_objs eng_objs ex_objs
+	gcc $(COM_OBJS) $(ENG_OBJS) $(EX_OBJS) $(CFLAGS) -o $@ -lstdc++ -lm
 	@echo "success!!"
 
 clean:

@@ -110,7 +110,7 @@ FRAC_TYPE RATIONAL::_gcd(FRAC_TYPE x, FRAC_TYPE y)
 	if ( x > y ) {
 		t = x, x = y, y = t;
 	}
-	while (x) {
+	while (x != 0) {
 		t = x;
 		x = y % x;
 		y = t;
@@ -135,8 +135,10 @@ static inline LONGLONG gcdf(LONGLONG x, LONGLONG y)
 	LONGLONG t;
 	if (x < 0) { x = -x; }
 	if (y < 0) { y = -y; }
-	if ( x > y ) {
-		t = x, x = y, y = t;
+	if (x > y) {
+		t = x;
+		x = y;
+		y = t;
 	}
 	while (x) {
 		t = x;

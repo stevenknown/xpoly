@@ -134,7 +134,6 @@ public:
 #define DEFAULT_SD			6
 FLMAT operator * (FLMAT const& a, FLMAT const& b);
 FLMAT operator - (FLMAT const& a, FLMAT const& b);
-float flt_fast_sqrt(float n);
 class FLMAT : public MATRIX<FLTY> {
 	bool m_is_init;
 	CHAR * m_sd_str; //Descripte significant digit string.

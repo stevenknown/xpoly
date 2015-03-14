@@ -2271,7 +2271,7 @@ public:
 		m_last_idx = MAX((INT)i, m_last_idx);
 		return m_vec[i];
 	}
-	
+
 	/* Copy each elements of 'list' into vector.
 	NOTE: The default termination factor is '0'.
 		While we traversing elements of LIST one by one, or from head to
@@ -2845,7 +2845,7 @@ bool SHASH<T, HF>::insert_v(OUT HC<T> ** bucket_entry,
 							OUT HC<T> ** hc, ULONG val)
 {
 	HC<T> * elemhc = *bucket_entry;
-	HC<T> * prev = NULL;	
+	HC<T> * prev = NULL;
 	while (elemhc != NULL) {
 		IS_TRUE(HC_val(elemhc) != T(0),
 				("Hash element has so far as to be overrided!"));
@@ -3481,7 +3481,7 @@ public:
 
 	TN * find_with_key(T keyt) const
 	{
-		if (m_root == NULL) { return NULL; }		
+		if (m_root == NULL) { return NULL; }
 		TN * x = m_root;
 		while (x != NULL) {
 			if (m_ck.is_equ(keyt, x->key)) {
@@ -3798,7 +3798,7 @@ NOTICE:
 	   nor pointer type.
 */
 
-/* 
+/*
 TMAP Iterator.
 This class is used to iterate elements in TMAP.
 You should call clean() to initialize the iterator.
@@ -3860,7 +3860,7 @@ public:
 		return z->mapped;
 	}
 
-	
+
 	//iter should be clean by caller.
 	Tsrc get_first(TMAP_ITER<Tsrc, Ttgt> & iter, Ttgt * mapped = NULL)
 	{ return BASE_TY::get_first(iter, mapped); }
@@ -3893,7 +3893,7 @@ NOTICE:
 		};
 */
 
-/* 
+/*
 TTAB Iterator.
 This class is used to iterate elements in TTAB.
 You should call clean() to initialize the iterator.
@@ -3947,7 +3947,7 @@ public:
 
 	//iter should be clean by caller.
 	T get_first(TAB_ITER<T> & iter)
-	{ return BASE_TY::get_first(iter, NULL); }	
+	{ return BASE_TY::get_first(iter, NULL); }
 
 	T get_next(TAB_ITER<T> & iter)
 	{ return BASE_TY::get_next(iter, NULL); }
@@ -3979,7 +3979,7 @@ protected:
 	HC<Tsrc> * findhc(Tsrc t) const
 	{
 		if (t == Tsrc(0)) { return NULL; }
-		UINT hashv = SHASH<Tsrc, HF>::m_hf.get_hash_value(t, 
+		UINT hashv = SHASH<Tsrc, HF>::m_hf.get_hash_value(t,
 								SHASH<Tsrc, HF>::m_bucket_size);
 		IS_TRUE((hashv < SHASH<Tsrc, HF>::m_bucket_size),
 				("hash value must less than bucket size"));

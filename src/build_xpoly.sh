@@ -1,2 +1,2 @@
 #!/bin/bash
-make xpoly -f Makefile.xpoly
+make xpoly_example.exe -f Makefile.xpoly

@@ -36,7 +36,8 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "xmat.h"
 
 
-MATRIX<RATIONAL> operator * (MATRIX<RATIONAL> const& a, MATRIX<RATIONAL> const& b)
+MATRIX<RATIONAL> operator * (MATRIX<RATIONAL> const& a,
+							MATRIX<RATIONAL> const& b)
 {
 	IS_TRUE(a.m_is_init && b.m_is_init, ("not yet initialize."));
 	IS_TRUE(a.m_row_size > 0 && a.m_col_size > 0, ("invalid matrix"));
@@ -58,7 +59,8 @@ MATRIX<RATIONAL> operator * (MATRIX<RATIONAL> const& a, MATRIX<RATIONAL> const& 
 }
 
 
-MATRIX<RATIONAL> operator + (MATRIX<RATIONAL> const& a, MATRIX<RATIONAL> const& b)
+MATRIX<RATIONAL> operator + (MATRIX<RATIONAL> const& a,
+							MATRIX<RATIONAL> const& b)
 {
 	IS_TRUE(a.m_is_init && b.m_is_init, ("not yet initialize."));
 	IS_TRUE(a.m_row_size == b.m_row_size && a.m_col_size == b.m_col_size,
@@ -148,7 +150,8 @@ MATRIX<INT> operator - (MATRIX<INT> const& a, MATRIX<INT> const& b)
 }
 
 
-MATRIX<PRECISION_TYPE> operator * (MATRIX<PRECISION_TYPE> const& a, MATRIX<PRECISION_TYPE> const& b)
+MATRIX<PRECISION_TYPE> operator * (MATRIX<PRECISION_TYPE> const& a,
+									MATRIX<PRECISION_TYPE> const& b)
 {
 	IS_TRUE(a.m_is_init && b.m_is_init, ("not yet initialize."));
 	IS_TRUE(a.m_row_size > 0 && a.m_col_size > 0, ("invalid matrix"));
@@ -170,7 +173,8 @@ MATRIX<PRECISION_TYPE> operator * (MATRIX<PRECISION_TYPE> const& a, MATRIX<PRECI
 }
 
 
-MATRIX<PRECISION_TYPE> operator + (MATRIX<PRECISION_TYPE> const& a, MATRIX<PRECISION_TYPE> const& b)
+MATRIX<PRECISION_TYPE> operator + (MATRIX<PRECISION_TYPE> const& a,
+									MATRIX<PRECISION_TYPE> const& b)
 {
 	IS_TRUE(a.m_is_init && b.m_is_init, ("not yet initialize."));
 	IS_TRUE(a.m_row_size == b.m_row_size && a.m_col_size == b.m_col_size,
@@ -187,7 +191,8 @@ MATRIX<PRECISION_TYPE> operator + (MATRIX<PRECISION_TYPE> const& a, MATRIX<PRECI
 }
 
 
-MATRIX<PRECISION_TYPE> operator - (MATRIX<PRECISION_TYPE> const& a, MATRIX<PRECISION_TYPE> const& b)
+MATRIX<PRECISION_TYPE> operator - (MATRIX<PRECISION_TYPE> const& a,
+								   MATRIX<PRECISION_TYPE> const& b)
 {
 	IS_TRUE(a.m_is_init && b.m_is_init, ("not yet initialize."));
 	IS_TRUE(a.m_row_size == b.m_row_size && a.m_col_size == b.m_col_size,
@@ -205,7 +210,7 @@ MATRIX<PRECISION_TYPE> operator - (MATRIX<PRECISION_TYPE> const& a, MATRIX<PRECI
 
 
 //
-//Rational Matrix
+//START Rational Matrix
 //
 static void init_den(MATRIX<RATIONAL> * pbasis)
 {
@@ -324,7 +329,8 @@ RMAT::RMAT(RMAT const& m) : MATRIX<RATIONAL>(m)
 }
 
 
-RMAT::RMAT(INTMAT const& m) //DO NOT explicitly initialize the base-class copy-constructor.
+//DO NOT explicitly initialize the base-class copy-constructor.
+RMAT::RMAT(INTMAT const& m)
 {
 	m_is_init = false;
 	init(m);
@@ -511,13 +517,11 @@ bool RMAT::inv(RMAT & e)
 }
 
 
-/*
-Reduction to a common denominator.
+/* Reduction to a common denominator.
 Return the common denominator.
 
 'row': Row to reduce
-'col': The starting column to reduce.
-*/
+'col': The starting column to reduce. */
 UINT RMAT::comden(UINT row, UINT col)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -552,8 +556,7 @@ UINT RMAT::comden(UINT row, UINT col)
 }
 
 
-/*
-Substituting variable 'v' with expression 'exp'.
+/* Substituting variable 'v' with expression 'exp'.
 
 'exp': system of equations
 'v': varible id, the column number.
@@ -676,28 +679,24 @@ RMAT operator - (RMAT const& a, RMAT const& b)
 }
 
 
-/*
-Dark Shadow elimination, inequlities form as: Ax <= c,
+/* Dark Shadow elimination, inequlities form as: Ax <= c,
 and region of x(unknowns) for which gap between upper
 and lower bounds of x is guaranteed to be greater than
 or equals 1.
 e.g: L <= x <= U , to ( L + 1) <= U.
 
-'c': constant vector.
-*/
+'c': constant vector. */
 void RMAT::ds(IN RMAT const& c)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
 }
 
 
-/*
-Converting rational element to integer for row vector.
+/* Converting rational element to integer for row vector.
 
 'row': number of row to integral
 
-NOTICE: This function uses row convention.
-*/
+NOTICE: This function uses row convention. */
 void RMAT::intliz(INT row)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -819,11 +818,9 @@ void INTMAT::copy(RMAT const& r)
 }
 
 
-/*
-Invering of Integer Matrix will be transformed to Rational
+/* Invering of Integer Matrix will be transformed to Rational
 Matrix, and one exception will be thrown if there are some
-element's denomiator is not '1'.
-*/
+element's denomiator is not '1'. */
 bool INTMAT::inv(OUT INTMAT & e)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -843,11 +840,9 @@ bool INTMAT::inv(OUT INTMAT & e)
 }
 
 
-/*
-Determinant of Integer Matrix will be transformed to Rational
+/* Determinant of Integer Matrix will be transformed to Rational
 Matrix, and one exception will be thrown if there are some
-element's denomiator is not '1'.
-*/
+element's denomiator is not '1'. */
 INT INTMAT::det()
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -859,9 +854,7 @@ INT INTMAT::det()
 }
 
 
-/*
-Generate unimodular matrix to elimnate element.
-*/
+//Generate unimodular matrix to elimnate element.
 void INTMAT::gen_elim_mat(IN UINT row, IN UINT col, OUT INTMAT & elim)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -869,10 +862,8 @@ void INTMAT::gen_elim_mat(IN UINT row, IN UINT col, OUT INTMAT & elim)
 	INT gcd = exgcd(aii, aij, x, y);
 	IS_TRUE(gcd == aii*x + aij*y, ("illegal computation"));
 
-	/*
-	Construct unimodular to eliminate aij.
-	Satisfied: det(uni) = x * ((x*aii+y*aij)/x*gcd) = 1
-	*/
+	//Construct unimodular to eliminate aij.
+	//Satisfied: det(uni) = x * ((x*aii+y*aij)/x*gcd) = 1
 	elim.reinit(m_col_size, m_col_size, &m_inhr);
 	elim.eye(1);
 	elim.set(row, row, x);
@@ -900,8 +891,7 @@ void INTMAT::_verify_hnf(INTMAT & h)
 }
 
 
-/*
-Hermite Normal Form decomposition.
+/* Hermite Normal Form decomposition.
 Given a m*n matrix A, there exists an n*n unimodular matrix U and
 an m*n lowtriangular matrix H such that:
 	A = H*inv(U)
@@ -921,8 +911,7 @@ u: unimodular matrix, so 'this' and h and u satisfied:
 
 NOTICE:
 	1. 'this' uses row convention.
-	2. 'this' may be singular.
-*/
+	2. 'this' may be singular. */
 void INTMAT::hnf(OUT INTMAT & h, OUT INTMAT & u)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -957,15 +946,13 @@ void INTMAT::hnf(OUT INTMAT & h, OUT INTMAT & u)
 			u = u * neg;
 		}
 
-		/*
-		3. Before performing the following operation, the
+		/* 3. Before performing the following operation, the
 		diagonal element must be positive!
 
 		Make elements below diagonal in row from 0 to i-1 are non-negative.
 		e.g: If aij is neative, and if abs(aij) <= abs(aii),
 		set aij = aij + aii or else set aij = aij + (d+1)*aii,
-		where d is abs(aij/aii).
-		*/
+		where d is abs(aij/aii). */
 		for (j = 0; j < i; j++) {
 			if (h.get(i, j) < 0) {
 				INT v;
@@ -982,8 +969,7 @@ void INTMAT::hnf(OUT INTMAT & h, OUT INTMAT & u)
 			} //end if
 		} //end for
 
-		/*
-		4. Reduce below diagonal elements which their value larger
+		/* 4. Reduce below diagonal elements which their value larger
 		than diagonal element in row.
 		Make sure 'elim' is triangular matrix to ensure |det(elim)|=1
 
@@ -994,8 +980,7 @@ void INTMAT::hnf(OUT INTMAT & h, OUT INTMAT & u)
 				[1 0 0]
 				[0 1 0]
 				[-d 0 1]
-			to reduce element a(i,j) less than a(i,i).
-		*/
+			to reduce element a(i,j) less than a(i,i). */
 		for (j = 0; j < i; j++) {
 			if (h.get(i, j) >= h.get(i, i)) {
 				INT d = h.get(i, j) / h.get(i, i); //Get
@@ -1049,23 +1034,19 @@ void INTMAT::gcd()
 }
 
 
-/*
-Find maximum convex hull of a set of 2-dimension points.(Graham scan)
+/* Find maximum convex hull of a set of 2-dimension points.(Graham scan)
 
 'c': coordinates of a set of points.
 'idx': 1*n matrix, indices of coordinates of convex hull.
 
-NOTICE:
-	1.'this' is a n*2 matrix that each row indicate one coordinate as (x,y).
-*/
+Note 'this' is a n*2 matrix that each row indicate one coordinate as (x,y). */
 void INTMAT::cvexhull(OUT INTMAT & hull)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
 	IS_TRUE(m_col_size == 2, ("need n*2 matrix"));
-	INT p0_x, p0_y;
-	UINT p0_idx, p1_idx;
-	UINT i;
-	for (i = 0; i < m_row_size; i++) {
+	INT p0_x = 0, p0_y = 0;
+	UINT p0_idx = 0, p1_idx = 0;
+	for (UINT i = 0; i < m_row_size; i++) {
 		if (i == 0) {
 			p0_x = get(i, 0);
 			p0_y = get(i, 1);
@@ -1085,7 +1066,7 @@ void INTMAT::cvexhull(OUT INTMAT & hull)
 
 	//Sort points with increasing polar angle, insertion sort.
 	LIST<INT> order;
-	for (i = 0; i < m_row_size; i++) {
+	for (UINT i = 0; i < m_row_size; i++) {
 		if (i == p0_idx) {
 			continue;
 		}
@@ -1257,7 +1238,7 @@ INTMAT operator - (INTMAT const& a, INTMAT const& b)
 
 
 //
-//Float Matrix, default precision is double.
+//START Float Matrix, default precision is double.
 //
 static CHAR const* g_sd_str = "%f";
 static void val_adjust(MATRIX<FLTY> * pbasis)
@@ -1328,7 +1309,7 @@ static void flt_dumps(void const* pbasis)
 }
 
 
-float flt_fast_sqrt(float n)
+static float flt_fast_sqrt(float n)
 {
 	float x, y;
 	const float f = 1.5f;
@@ -1433,13 +1414,11 @@ void FLMAT::destroy()
 }
 
 
-/*
-Set value of elements one by one.
+/* Set value of elements one by one.
 'num': indicate the number of variant parameters.
 NOTICE:
 	Pamaters after 'num' must be float/double.
-	e.g: sete(NUM, 2.0, 3.0...)
-*/
+	e.g: sete(NUM, 2.0, 3.0...) */
 void FLMAT::sete(UINT num, ...)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -1465,13 +1444,11 @@ void FLMAT::sete(UINT num, ...)
 }
 
 
-/*
-Set value of elements one by one.
+/* Set value of elements one by one.
 'num': indicate the number of variant parameters.
 NOTICE:
 	Pamaters after 'num' must be integer.
-	e.g: setie(NUM, 2, 3...)
-*/
+	e.g: setie(NUM, 2, 3...) */
 void FLMAT::setie(UINT num, ...)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
@@ -1675,10 +1652,8 @@ void BMAT::destroy()
 }
 
 
-/*
-Assignment value of matrix element
-e.g: sete(3, true, true, false)
-*/
+//Assignment value of matrix element
+//e.g: sete(3, true, true, false)
 void BMAT::sete(UINT num, ...)
 {
 	IS_TRUE(m_is_init, ("not yet initialize."));
