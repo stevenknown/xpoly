@@ -28,9 +28,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __LOOP_DATA_TRAN_H_
 #define __LOOP_DATA_TRAN_H_
 
-/*
-Loop Transformation
-
+/* Loop Transformation
 TOD0: Simplified loop bound
 	CASE1:
 		e.g: test35()
@@ -51,33 +49,60 @@ TOD0: Simplified loop bound
 #define OP_DELTA	1 //premultiply T by delta-matrix
 #define	OP_PERM		 2 //premultiply T by classical permuation matrix.
 class LOOP_TRAN {
-	bool m_is_init;
 	SMEM_POOL * m_pool;
 	RMAT * m_a; //Records loop limits: Ax <= b
-	INT m_rhs_idx; //Records starting column of right hand side of equation
-				   //or inequlity.
-	void * xmalloc(ULONG size);
+
+	//Records starting column of right hand side of equation or inequlity.
+	INT m_rhs_idx;
+	void * xmalloc(ULONG size)
+	{
+		void * p = smpool_malloc_h(size,m_pool);
+		IS_TRUE0(p);
+		memset(p, 0, size);
+		return p;
+	}
 public:
-	LOOP_TRAN(RMAT * m, INT rhs_idx = -1);
-	~LOOP_TRAN();
-	void init(RMAT * m, INT rhs_idx = -1);
-	void destroy();
+	LOOP_TRAN(RMAT * m, INT rhs_idx = -1)
+	{
+		m_pool = NULL;
+		m_rhs_idx = -1;
+		m_a = NULL;
+		init(m, rhs_idx);
+	}
+	~LOOP_TRAN() { destroy(); }
+
+	void init(RMAT * m, INT rhs_idx = -1)
+	{
+		IS_TRUE0(m_pool == NULL);
+		m_pool = smpool_create_handle(16, MEM_COMM);
+		if (m != NULL) {
+			set_param(m, rhs_idx);
+		}
+	}
+
+	void destroy()
+	{
+		IS_TRUE0(m_pool);
+		m_a = NULL;
+		m_rhs_idx = -1;
+		smpool_free_handle(m_pool);
+		m_pool = NULL;
+	}
 
 	//Set index of const column and coeff matrix.
 	void set_param(RMAT * m, INT rhs_idx = -1);
+
 	//Applying loop transformation.
 	bool tran_iter_space(IN RMAT & t,
-					OUT RMAT & stride,
-					OUT RMAT & idx_map,
-					OUT LIST<RMAT*> & limits,
-					OUT RMAT & ofst,
-					OUT RMAT & mul,
-					OUT RMAT * trA = NULL); //Perform nonunimodular trans.
+						OUT RMAT & stride,
+						OUT RMAT & idx_map,
+						OUT LIST<RMAT*> & limits,
+						OUT RMAT & ofst,
+						OUT RMAT & mul,
+						OUT RMAT * trA = NULL); //Perform nonunimodular trans.
 
-	/*
-	Functions to generate automatically unimodular/nonsingular
-	transforming matrix for various loop transformations
-	*/
+	//Functions to generate automatically unimodular/nonsingular
+	//transforming matrix for various loop transformations
 	bool fully_permutable(OUT RMAT & t, IN DVECS const& dvec);
 	bool is_fully_permutable(IN DVECS const& dvec);
 	bool is_legal(IN DVECS const& dvec);
@@ -91,9 +116,7 @@ public:
 };
 
 
-/*
-Generate C Code
-*/
+//Generate C Code
 class GEN_C {
 	bool m_is_init;
 	SMEM_POOL * m_pool;

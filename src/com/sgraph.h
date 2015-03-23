@@ -174,21 +174,30 @@ public:
 
 
 class VERTEX_HASH : public SHASH<VERTEX*, VERTEX_HF> {
+protected:
+	SMEM_POOL * m_ec_pool;
 public:
-	VERTEX_HASH(UINT bsize = 64) : SHASH<VERTEX*, VERTEX_HF>(bsize) {}
-	virtual ~VERTEX_HASH() {}
+	VERTEX_HASH(UINT bsize = 64) : SHASH<VERTEX*, VERTEX_HF>(bsize)
+	{
+		m_ec_pool = smpool_create_handle(sizeof(VERTEX) * 4, MEM_CONST_SIZE);
+	}
+
+	virtual ~VERTEX_HASH()
+	{ smpool_free_handle(m_ec_pool); }
 
 	virtual VERTEX * create(ULONG v)
 	{
-		VERTEX * ver = (VERTEX*)xmalloc(sizeof(VERTEX));
-		VERTEX_id(ver) = v;
-		return ver;
+		VERTEX * vex = (VERTEX*)smpool_malloc_h_const_size(sizeof(VERTEX),
+														   m_ec_pool);
+		IS_TRUE0(vex);
+		memset(vex, 0, sizeof(VERTEX));
+		VERTEX_id(vex) = v;
+		return vex;
 	}
 };
 
 
-/*
-A graph G = (V, E), consists of a set of vertices, V, and a set of edges, E.
+/* A graph G = (V, E), consists of a set of vertices, V, and a set of edges, E.
 Each edge is a pair (v,w), where v,w belong to V. Edges are sometimes
 referred to as arcs. If the pair is ordered, then the graph is directed.
 Directed graphs are sometimes referred to as digraphs. Vertex w is adjacent
@@ -196,11 +205,9 @@ to v if and only if (v,w) belong to E. In an undirected graph with edge (v,w),
 and hence (w,v), w is adjacent to v and v is adjacent to w.
 Sometimes an edge has a third component, known as either a weight or a cost.
 
-NOTICE:
-1. For accelerating perform operation of each vertex, e.g
-   compute dominator, please try best to add vertex with
-   topological order.
-*/
+NOTICE: for accelerating perform operation of each vertex, e.g
+compute dominator, please try best to add vertex with
+topological order. */
 class GRAPH {
 	friend class EDGE_HASH;
 	friend class VERTEX_HASH;
@@ -216,22 +223,78 @@ protected:
 	FREE_LIST<EDGE> m_e_free_list; //record freed EDGE for reuse.
 	FREE_LIST<EDGE_C> m_el_free_list; //record freed EDGE_C for reuse.
 	FREE_LIST<VERTEX> m_v_free_list; //record freed VERTEX for reuse.
-	SMEM_POOL * m_pool;
+	SMEM_POOL * m_vertex_pool;
+	SMEM_POOL * m_edge_pool;
+	SMEM_POOL * m_ec_pool;
 
 	//record vertex if vertex id is densen distribution.
 	//map vertex id to vertex.
 	SVECTOR<VERTEX*> * m_dense_vertex;
 
-	void * xmalloc(ULONG size);
-	void _scan_scc(SSTACK<UINT> * sccpath, VERTEX * v);
+	//Add 'e' into out-edges of 'vex'
+	inline void add_out_list(VERTEX * vex, EDGE * e)
+	{
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
+		if (vex == NULL || e == NULL)return;
+
+		EDGE_C * el = VERTEX_out_list(vex);
+		while (el != NULL) {
+			if (EC_edge(el) == e) return;
+			el = EC_next(el);
+		}
+		el = new_ec(e);
+		add_next(&VERTEX_out_list(vex), el);
+	}
+
+	//Add 'e' into in-edges of 'vex'
+	inline void add_in_list(VERTEX * vex, EDGE * e)
+	{
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
+		if (vex == NULL || e == NULL) return;
+
+		EDGE_C * el = VERTEX_in_list(vex);
+		while (el != NULL) {
+			if (EC_edge(el) == e) return;
+			el = EC_next(el);
+		}
+		el = new_ec(e);
+		add_next(&VERTEX_in_list(vex), el);
+	}
+
 	virtual void * clone_edge_info(EDGE * e)
 	{ IS_TRUE(0, ("should be overloaded")); return NULL; }
 
-	EDGE * new_edge_c(VERTEX * from, VERTEX * to);
 	virtual void * clone_vertex_info(VERTEX * v)
 	{ IS_TRUE(0, ("should be overloaded")); return NULL; }
-	inline void add_out_list(VERTEX * vex, EDGE * e);
-	inline void add_in_list(VERTEX * vex, EDGE * e);
+
+	inline EDGE * new_edge_impl(VERTEX * from, VERTEX * to)
+	{
+		EDGE * e = m_e_free_list.get_free_elem();
+		if (e == NULL) {
+			e = (EDGE*)smpool_malloc_h_const_size(sizeof(EDGE), m_edge_pool);
+			memset(e, 0, sizeof(EDGE));
+		}
+		EDGE_from(e) = from;
+		EDGE_to(e) = to;
+		add_in_list(to, e);
+		add_out_list(from, e);
+		return e;
+	}
+
+	inline EDGE_C * new_ec(EDGE * e)
+	{
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
+		if (e == NULL) { return NULL; }
+
+		EDGE_C * el = m_el_free_list.get_free_elem();
+		if (el == NULL) {
+			el = (EDGE_C*)smpool_malloc_h_const_size(sizeof(EDGE_C),
+													 m_ec_pool);
+			memset(el, 0, sizeof(EDGE_C));
+		}
+		EC_edge(el) = e;
+		return el;
+	}
 public:
 	GRAPH(UINT edge_hash_size = 64, UINT vex_hash_size = 64);
 	GRAPH(GRAPH & g);
@@ -240,21 +303,22 @@ public:
 	void destroy();
 	inline EDGE * add_edge(UINT from, UINT to)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return new_edge(from, to);
 	}
 	inline EDGE * add_edge(VERTEX * from, VERTEX * to)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return new_edge(from, to);
 	}
 	inline VERTEX * add_vertex(UINT vid)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return m_vertices.append(new_vertex(vid));
 	}
 
-	void compute_rpo_norec(VERTEX * root, LIST<VERTEX*> & vlst);
+	void compute_rpo_norec(IN OUT VERTEX * root,
+						OUT LIST<VERTEX const*> & vlst);
 	bool clone(GRAPH & src);
 	UINT count_mem() const;
 
@@ -269,7 +333,7 @@ public:
 	//Is there exist a path connect 'from' and 'to'.
 	inline bool is_reachable(UINT from, UINT to)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return is_reachable(get_vertex(from), get_vertex(to));
 	}
 	bool is_reachable(VERTEX * from, VERTEX * to);
@@ -278,11 +342,11 @@ public:
 							   OUT EDGE ** e2 = NULL);
 	void insert_vertex_between(UINT v1, UINT v2, UINT newv,
 							   OUT EDGE ** e1 = NULL, OUT EDGE ** e2 = NULL);
-	bool is_graph_entry(VERTEX * v)
+	bool is_graph_entry(VERTEX const* v) const
 	{ return VERTEX_in_list(v) == NULL;	}
 
 	//Return true if vertex is exit node of graph.
-	bool is_graph_exit(VERTEX * v)
+	bool is_graph_exit(VERTEX const* v) const
 	{ return VERTEX_out_list(v) == NULL; }
 
 	void erasure();
@@ -291,7 +355,7 @@ public:
 	bool get_neighbor_set(OUT SBITSET & niset, IN UINT vid) const;
 	inline UINT get_degree(UINT vid)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return get_degree(get_vertex(vid));
 	}
 	UINT get_degree(VERTEX const* vex) const;
@@ -299,17 +363,17 @@ public:
 	UINT get_out_degree(VERTEX const* vex) const;
 	inline UINT get_vertex_num()
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return m_vertices.get_elem_count();
 	}
 	inline UINT get_edge_num()
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return m_edges.get_elem_count();
 	}
 	inline VERTEX * get_vertex(UINT vid)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		if (m_dense_vertex != NULL) {
 			return m_dense_vertex->get(vid);
 		}
@@ -319,34 +383,33 @@ public:
 	EDGE * get_edge(VERTEX const* from, VERTEX const* to);
 	inline EDGE * get_first_edge(INT & cur)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return m_edges.get_first(cur);
 	}
 	inline EDGE * get_next_edge(INT & cur)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return m_edges.get_next(cur);
 	}
 	inline VERTEX * get_first_vertex(INT & cur)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return m_vertices.get_first(cur);
 	}
 	inline VERTEX * get_next_vertex(INT & cur)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return m_vertices.get_next(cur);
 	}
 	inline EDGE * new_edge(UINT from, UINT to)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		VERTEX * fp = add_vertex(from);
 		VERTEX * tp = add_vertex(to);
 		return new_edge(fp, tp);
 	}
 	EDGE * new_edge(VERTEX * from, VERTEX * to);
 	VERTEX * new_vertex(UINT vid);
-	EDGE_C * new_ec(EDGE * e);
 
 	void resize(UINT vertex_hash_sz, UINT edge_hash_sz);
 	EDGE * rev_edge(EDGE * e); //Reverse edge direction.(e.g: a->b => b->a)
@@ -356,7 +419,7 @@ public:
 	VERTEX * remove_vertex(VERTEX * vex);
 	inline VERTEX * remove_vertex(UINT vid)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		return remove_vertex(get_vertex(vid));
 	}
 	void remove_transitive_edge();
@@ -364,12 +427,12 @@ public:
 	bool sort_in_toplog_order(OUT SVECTOR<UINT> & vex_vec, bool is_topdown);
 	void set_unique(bool is_unique)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		m_is_unique = is_unique;
 	}
 	void set_direction(bool has_direction)
 	{
-		IS_TRUE(m_pool != NULL, ("not yet initialized."));
+		IS_TRUE(m_ec_pool != NULL, ("not yet initialized."));
 		m_is_direction = has_direction;
 	}
 	void set_dense(bool is_dense)
@@ -427,13 +490,15 @@ public:
 		return GRAPH::clone(g);
 	}
 	bool clone_bs(DGRAPH & src);
-	bool compute_dom3(LIST<VERTEX*> * vlst, BITSET const* uni);
-	bool compute_dom2(LIST<VERTEX*> const& vlst);
-	bool compute_dom(LIST<VERTEX*> * vlst = NULL, BITSET const* uni = NULL);
-	bool compute_pdom_by_rpo(VERTEX * root, BITSET const* uni = NULL);
-	bool compute_pdom(LIST<VERTEX*> * vlst = NULL, BITSET const* uni = NULL);
+	bool compute_dom3(LIST<VERTEX const*> const* vlst, BITSET const* uni);
+	bool compute_dom2(LIST<VERTEX const*> const& vlst);
+	bool compute_dom(LIST<VERTEX const*> const* vlst = NULL,
+					 BITSET const* uni = NULL);
+	bool compute_pdom_by_rpo(VERTEX * root, BITSET const* uni);
+	bool compute_pdom(LIST<VERTEX const*> const* vlst);
+	bool compute_pdom(LIST<VERTEX const*> const* vlst, BITSET const* uni);
 	bool compute_idom();
-	bool compute_idom2(LIST<VERTEX*> const& vlst);
+	bool compute_idom2(LIST<VERTEX const*> const& vlst);
 	bool compute_ipdom();
 	UINT count_mem() const;
 
