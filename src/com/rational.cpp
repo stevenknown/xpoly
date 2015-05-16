@@ -294,8 +294,8 @@ RATIONAL operator * (RATIONAL const& a, RATIONAL const& b)
 
 	//Enforce conversion from 'int64' to 'int32',
 	//even if it possible loss of data.
-	rat.m_num = rnum < 0 ? -trnum : trnum;
-	rat.m_den = rden;
+	rat.m_num = (FRAC_TYPE)(rnum < 0 ? -trnum : trnum);
+	rat.m_den = (FRAC_TYPE)rden;
 	return rat;
 }
 
@@ -345,8 +345,8 @@ RATIONAL operator / (RATIONAL const& a, RATIONAL const& b)
 					(ratden < (LONGLONG)(INT_MAX)));
 		}
 	}
-	rat.m_num = ratnum < 0 ? -trnum : trnum;
-	rat.m_den = ratden;
+	rat.m_num = (FRAC_TYPE)(ratnum < 0 ? -trnum : trnum);
+	rat.m_den = (FRAC_TYPE)ratden;
 	return rat;
 }
 
@@ -382,7 +382,7 @@ RATIONAL operator + (RATIONAL const& a, RATIONAL const& b)
 					(rden < (LONGLONG)(INT_MAX)));
 		}
 	}
-	rat.m_num = rnum < 0 ? -trnum : trnum;
-	rat.m_den = rden;
+	rat.m_num = (FRAC_TYPE)(rnum < 0 ? -trnum : trnum);
+	rat.m_den = (FRAC_TYPE)rden;
 	return rat;
 }

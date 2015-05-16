@@ -42,53 +42,6 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //START LOOP_TRAN
 //
-LOOP_TRAN::LOOP_TRAN(RMAT * m, INT rhs_idx)
-{
-	m_is_init = false;
-	m_rhs_idx = -1;
-	m_a = NULL;
-	init(m, rhs_idx);
-}
-
-
-LOOP_TRAN::~LOOP_TRAN()
-{
-  	destroy();
-}
-
-
-void * LOOP_TRAN::xmalloc(ULONG size)
-{
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
-	void * p = smpool_malloc_h(size,m_pool);
-	IS_TRUE0(p);
-	memset(p,0,size);
-	return p;
-}
-
-
-void LOOP_TRAN::init(RMAT * m, INT rhs_idx)
-{
-	if (m_is_init) return;
-	m_pool = smpool_create_handle(16, MEM_COMM);
-	if (m != NULL) {
-		set_param(m, rhs_idx);
-	}
-	m_is_init = true;
-}
-
-
-void LOOP_TRAN::destroy()
-{
-	if (!m_is_init) return;
-	m_a = NULL;
-	m_rhs_idx = -1;
-	smpool_free_handle(m_pool);
-	m_pool = NULL;
-	m_is_init = false;
-}
-
-
 //Set coeff matrix and index of start column of constant term.
 void LOOP_TRAN::set_param(RMAT * m, INT rhs_idx)
 {
@@ -179,7 +132,6 @@ bool LOOP_TRAN::tran_iter_space(IN RMAT & t,
 								OUT RMAT & mul,
 								OUT RMAT * trA)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized"));
 	IS_TRUE(aux_limits.get_elem_count() == (UINT)m_rhs_idx,
 					("unmatch coeff matrix info"));
 	RMAT * A, tmpA, C, Ui, invt;
@@ -252,17 +204,20 @@ bool LOOP_TRAN::tran_iter_space(IN RMAT & t,
 		Ui.copy(tmpu);
 		H.copy(tmph);
 
-		///for test
 		{
+			#ifdef _DEBUG_
 			RMAT U;
 			Ui.inv(U); // it = tmph * Ui;
 			U = H * U;
 			IS_TRUE(t==U, ("illegal inv"));
+			#endif
 		}
+
 		H.getdiag(stride);
 		mul.copy(stride);
 		H.inv(Hi);
 		invt = Ui * Hi;
+
 		#ifdef _DEBUG_
 		RMAT invt,e(t.get_row_size(), t.get_col_size());
 		e.eye(1);
@@ -275,17 +230,15 @@ bool LOOP_TRAN::tran_iter_space(IN RMAT & t,
 		*A = *A * Ui;
 
 		//Compute loop limits for auxiliary iteration space.
-		m_a->inner(C, 0,
-					m_rhs_idx, m_a->get_row_size() - 1,
+		m_a->inner(C, 0, m_rhs_idx, m_a->get_row_size() - 1,
 					m_a->get_col_size() - 1);
 		A->grow_col(C, 0, C.get_col_size() -1);
 		LINEQ lineq(A, m_rhs_idx);
 		RMAT * newb = aux_limits.get_tail();
-		INT i;
 
 		//Eliminating each variable from inner most loop to outer loop,
 		//except the outer most loop.
-		for (i = m_rhs_idx - 1; i > 0; i--) {
+		for (INT i = m_rhs_idx - 1; i > 0; i--) {
 			*newb = *A;
 			RMAT res;
 			if (!lineq.fme(i, res, false)) {
@@ -314,10 +267,10 @@ bool LOOP_TRAN::tran_iter_space(IN RMAT & t,
 		*/
 		ofst.reinit(1, vars); //Ofst of first var is zero.
 		ofst.set_row(0, (RATIONAL)0);
-		for (i = 1; i < (INT)vars; i++) {
+		for (UINT i = 1; i < vars; i++) {
 			//Backward subsititutes new index variable for orig index variable.
 			RMAT newofst;
-			for (UINT j = 0; j < (UINT)i; j++) {
+			for (UINT j = 0; j < i; j++) {
 				RATIONAL t = H.get(i, j);
 				RMAT hirow;
 				Hi.inner_row(hirow, j, j);
@@ -333,6 +286,7 @@ bool LOOP_TRAN::tran_iter_space(IN RMAT & t,
 		}
 		is_uni = false;
 	} //end else
+
 	if (idx_map.size() > 0) {
 		IS_TRUE0(idx_map.get_col_size() == invt.get_col_size());
 		idx_map = idx_map * invt;
@@ -357,7 +311,6 @@ bool LOOP_TRAN::parallel_inner_loops(OUT RMAT & t,
 									IN DVECS const& dvec,
 									UINT dep_level, UINT option)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
 	IS_TRUE(dep_level < dvec.get_row_size(), ("out of rowsize"));
 	if (!fully_permutable(t, dvec)) {
 		return false;
@@ -366,14 +319,14 @@ bool LOOP_TRAN::parallel_inner_loops(OUT RMAT & t,
 	if (is_innermost_loop_parallelizable(t * dvec)) {
 		return true;
 	}
+
 	/* Premultiplication by matrix DELTA to make all of outermost dep
 	entries(first row) positive, or each of column elements should be zero.
 	CASE:Given dvec as:
 			[0, 1, 0]
 			[0, -2, 0]
 			[0, 3, 4]
-		The first dependent vector only has zero entry.
-	*/
+	The first dependent vector only has zero entry. */
 	if (ONLY_HAVE_FLAG(option, OP_DELTA)) { //Premultipling delta.
 		RMAT delta(t.get_row_size(), t.get_col_size());
 		delta.eye(1);
@@ -461,7 +414,7 @@ much as possible.
 			[0,0,0,0] //for L1
 			[0,0,0,0] //for L2
 			[w,x,y,z] //for L3
-	That illustates two outer of loops L1, L2 are parallelled.
+	This illustates two outer loops L1 and L2 are parallelled.
 
 NOTICE:
 	The case that only can be handled is that 'dvec' is singular!
@@ -470,8 +423,6 @@ NOTICE:
 	inner loops. */
 bool LOOP_TRAN::parallel_outer_loops(OUT RMAT & t, IN DVECS const& dvec)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
-	UINT i;
 	//1. Fully permutability. 'dvec' should be column convention.
 	if (!fully_permutable(t, dvec)) {
 		return false;
@@ -500,7 +451,7 @@ bool LOOP_TRAN::parallel_outer_loops(OUT RMAT & t, IN DVECS const& dvec)
 
 	//3. Extracting columns with nonzero elements.
 	RMAT tt;
-	for (i = 0; i < x.get_col_size(); i++) {
+	for (UINT i = 0; i < x.get_col_size(); i++) {
 		if (!x.is_colequ(i, 0)) {
 			RMAT tmp;
 			x.inner_col(tmp, i, i);
@@ -537,7 +488,6 @@ bool LOOP_TRAN::parallel_outer_loops(OUT RMAT & t, IN DVECS const& dvec)
 //Algorithm to maximize degrees of parallelism.
 bool LOOP_TRAN::parallel_most_loops(OUT RMAT & t, IN DVECS const& dvec)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
 	UINT dep_level = 0;
 	DVECS const * pdvec = &dvec;
 	DVECS tdvec; //'tdvec' for temp use
@@ -587,11 +537,9 @@ Return true if permutation is necessary, otherwise return false.
 */
 bool LOOP_TRAN::perm_out_zero_rows(OUT RMAT & t, IN RMAT const& m)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
 	BMAT zerorow(m.get_row_size(), 1); //column vector
-	UINT i,j;
 	bool has_nonzero = false;
-	for (i = 0; i < m.get_row_size(); i++) {
+	for (UINT i = 0; i < m.get_row_size(); i++) {
 		if (m.is_rowequ(i, 0)) {
 			zerorow.set(i, 0, true);
 		} else {
@@ -608,14 +556,14 @@ bool LOOP_TRAN::perm_out_zero_rows(OUT RMAT & t, IN RMAT const& m)
 
 	//Bubble sorting like method
 	bool is_swap = false;
-	for (i = 0; i < zerorow.get_row_size() - 1; i++) {
+	for (UINT i = 0; i < zerorow.get_row_size() - 1; i++) {
 		bool do_perm = false;
 		if (zerorow.get(i, 0)) {
 			continue;
 		}
 		UINT tmpi = i;
 		//row tmpi has nonzero elements.
-		for (j = i + 1; j < zerorow.get_row_size(); j++) {
+		for (UINT j = i + 1; j < zerorow.get_row_size(); j++) {
 			if (!zerorow.get(j, 0)) {
 				continue;
 			}
@@ -650,8 +598,6 @@ NOTICE:
 	'dvec' use column convention. */
 bool LOOP_TRAN::fully_permutable(OUT RMAT & t, IN DVECS const& dvec)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
-	UINT i,j,k;
 	t.reinit(dvec.get_row_size(), dvec.get_row_size());
 	if (is_fully_permutable(dvec)) {
 		t.eye(1);
@@ -666,8 +612,8 @@ bool LOOP_TRAN::fully_permutable(OUT RMAT & t, IN DVECS const& dvec)
 	DVECS tmpt;
 AGAIN:
 	pt->eye(1);
-	for (i = 0; i < pdvec->get_row_size(); i++) {
-		for (j = 0; j < pdvec->get_col_size(); j++) {
+	for (UINT i = 0; i < pdvec->get_row_size(); i++) {
+		for (UINT j = 0; j < pdvec->get_col_size(); j++) {
 			DD dd_inner_loop = pdvec->get(i,j);
 			if (dd_inner_loop.dir == DT_NEG || dd_inner_loop.dir == DT_MISC) {
 				//Cannot handle these case.
@@ -679,15 +625,13 @@ AGAIN:
 			//At the present method, we can only handle constant elements.
 			if (dd_inner_loop.dir == DT_DIS && dd_inner_loop.dis < 0) {
 				bool done = false;
-				for (k = 0; k < i; k++) {
+				for (UINT k = 0; k < i; k++) {
 					DD dd_outer_loop = pdvec->get(k,j);
 
-					/*
-					CASE1. Outer loop dependence is constant distance
+					/* CASE1. Outer loop dependence is constant distance
 					Computs factor = Ceil( abs(inner's distance) ,
 									       outer's distance ),
-					to make inner distance nonnegative.
-					*/
+					to make inner distance nonnegative. */
 					if (dd_outer_loop.dir == DT_DIS) {
 						IS_TRUE(dd_outer_loop.dis >= 0,
 								("miss one negative candidate"));
@@ -747,8 +691,8 @@ AGAIN:
 	tmpt = *pt * *pdvec;
 
 	//Checking for the product of T*D if there are new negative distant entries.
-	for (i = 0; i < tmpt.get_row_size(); i++) {
-		for (j = 0; j < tmpt.get_col_size(); j++) {
+	for (UINT i = 0; i < tmpt.get_row_size(); i++) {
+		for (UINT j = 0; j < tmpt.get_col_size(); j++) {
 			DD dd = tmpt.get(i,j);
 			if (dd.dir == DT_NEG ||	dd.dir == DT_MISC) {
 				//Cannot handle these case.
@@ -794,17 +738,12 @@ FIN:
 }
 
 
-/*
-Return true if all elements are greater than or equals 0.
-
-'dvec': dependence matrix, each column indicate dependence vector.
-*/
+//Return true if all elements are greater than or equals 0.
+//'dvec': dependence matrix, each column indicate dependence vector.
 bool LOOP_TRAN::is_fully_permutable(IN DVECS const& dvec)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
-	UINT i,j;
-	for (i = 0; i < dvec.get_row_size(); i++) {
-		for (j = 0; j < dvec.get_col_size(); j++) {
+	for (UINT i = 0; i < dvec.get_row_size(); i++) {
+		for (UINT j = 0; j < dvec.get_col_size(); j++) {
 			DD dd = dvec.get(i,j);
 			if (!((dd.dir == DT_DIS && dd.dis >= 0) || dd.dir == DT_POS)) {
 				return false;
@@ -818,15 +757,13 @@ bool LOOP_TRAN::is_fully_permutable(IN DVECS const& dvec)
 //Check dependence vectors if innermost loop parallelizable.
 bool LOOP_TRAN::is_innermost_loop_parallelizable(IN DVECS const& dvec)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
-	INT i,j;
-	for (j = 0; j < (INT)dvec.get_col_size(); j++) {
+	for (INT j = 0; j < (INT)dvec.get_col_size(); j++) {
 		DD dd = dvec.get(dvec.get_row_size() - 1,j);
 		if (dd.dir == DT_DIS && dd.dis == 0) {
 			continue;
 		}
 		INT dep_level = dvec.get_row_size() - 1;
-		for (i = dvec.get_row_size()- 2; i >= 0; i--) {
+		for (INT i = dvec.get_row_size()- 2; i >= 0; i--) {
 			DD dd = dvec.get(i,j);
 			if ((dd.dir == DT_DIS && dd.dis > 0) ||
 				(dd.dir == DT_POS && dd.dis > 0)) {
@@ -842,18 +779,13 @@ bool LOOP_TRAN::is_innermost_loop_parallelizable(IN DVECS const& dvec)
 }
 
 
-/*
-Return true if dependence matrix is legal in which elements is
-lexicographically positive.
-
-'dvec': dependence matrix, each column indicate dependence vector.
-*/
+//Return true if dependence matrix is legal in which elements is
+//lexicographically positive.
+//'dvec': dependence matrix, each column indicate dependence vector.
 bool LOOP_TRAN::is_legal(IN DVECS const& dvec)
 {
-	IS_TRUE(m_is_init == true, ("not yet initialized."));
-	UINT i,j;
-	for (j = 0; j < dvec.get_col_size(); j++) {
-		for (i = 0; i < dvec.get_row_size(); i++) {
+	for (UINT j = 0; j < dvec.get_col_size(); j++) {
+		for (UINT i = 0; i < dvec.get_row_size(); i++) {
 			DD dd = dvec.get(i,j);
 			if ((dd.dir == DT_DIS && dd.dis < 0) ||
 				 dd.dir == DT_NEG ||
@@ -1011,8 +943,7 @@ CHAR * GEN_C::get_newvar_sym(OUT CHAR * sbuf, INT varid)
 }
 
 
-/*
-Generate linear expression
+/* Generate linear expression
 'is_lb': it is true was said that the expression contained in lower bound,
 	or false is in the upper bound.
 'num_sc': the number of symbolic constants
@@ -1021,8 +952,7 @@ Generate linear expression
 	Given i < 1 + 2*M + 3*N
 	First column indicate the unknown 'i', second column indicate
 	constant value, namely the literal '1'. So the column of constant
-	symbol start is the third one.
-*/
+	symbol start is the third one. */
 void GEN_C::genlinexp(OUT CHAR sbuf[], IN RMAT & coeff_vec, INT ivar,
 					INT comden, bool is_lb, UINT sym_start_cl, UINT num_sc)
 {
@@ -1140,26 +1070,22 @@ void GEN_C::genub(OUT CHAR sbuf[], IN RMAT * limits, INT ub, INT ivar)
 }
 
 
-/*
-Prints low bound of loop index variable 'ivar'.
+/* Prints low bound of loop index variable 'ivar'.
 
 'limits': represent loop limit.
 'lb': row index of loop limit, and that row describing low bound.
 	e.g:
 		[-1 0] means -x <= 0
-'ivar': variable index
-*/
+'ivar': variable index. */
 void GEN_C::genlb(OUT CHAR sbuf[], IN RMAT * limits, INT lb, INT ivar)
 {
 	IS_TRUE(m_is_init == true, ("not yet initialized"));
 	IS_TRUE(m_a && m_rhs_idx >= 0, ("not yet initialized"));
 
-	/*
-	Given i < 1 + 2*M + 3*N
+	/* Given i < 1 + 2*M + 3*N
 	First column indicate the unknown 'i', second column indicate
 	constant value, namely the '1'. So the column of constant
-	symbol start is the third one.
-	*/
+	symbol start is the third one. */
 	UINT sym_start_cl = 2;
 
 	//The number of symbolic constants
@@ -1319,16 +1245,14 @@ void GEN_C::genidxm(OUT CHAR sbuf[], IN RMAT & idx_map)
 	if (idx_map.size() == 0) {
 		return;
 	}
-	UINT i;
 	CHAR tmpbuf[TMP_BUF_LEN];
 
-	/*
-	Common low denominator to reduce division
+	/* Common low denominator to reduce division
 	e.g: Given expression is i + (3/2)*j + (1/2)*k, then transformed to
 		(2*i + 3*j + k) / 2
 	*/
 	bool allzero = true;
-	for (i = 0; i < idx_map.get_row_size(); i++) {
+	for (UINT i = 0; i < idx_map.get_row_size(); i++) {
 		idx_map.comden(i, 0);
 		if (!idx_map.is_rowequ(i, 0)) {
 			allzero = false;
@@ -1337,7 +1261,7 @@ void GEN_C::genidxm(OUT CHAR sbuf[], IN RMAT & idx_map)
 	IS_TRUE(!allzero, ("idx mapping is NULL"));
 
 	//Walk through each of level loop nest
-	for (i = 0; i < idx_map.get_row_size(); i++) {
+	for (UINT i = 0; i < idx_map.get_row_size(); i++) {
 		if (idx_map.is_rowequ(i, 0)) {
 			continue;
 		}
@@ -1373,7 +1297,8 @@ void GEN_C::genidxm(OUT CHAR sbuf[], IN RMAT & idx_map)
 			}
 
 			hasv = true;
-		}//for each of column
+		} //for each of column
+
 		if (comden != 1) {
 			xstrcat(sbuf, m_sbufl, ")/%d", comden);
 		}
@@ -1483,14 +1408,11 @@ void GEN_C::genlimit(OUT CHAR sbuf[], INT stride, IN RMAT * limits,
 }
 
 
-/*
-Prints out C codes
-
+/* Prints out C codes.
 'stride','idx_map','limits',ofst','mul' see details in manual of
 	tran_iter_space().
 'name': file name to dump.
-'is_del': creates new dump file
-*/
+'is_del': creates new dump file */
 void GEN_C::genlimits(IN LIST<RMAT*> & limits,
 						IN RMAT * pstride,
 						IN RMAT * pidx_map,

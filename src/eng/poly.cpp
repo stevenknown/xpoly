@@ -105,6 +105,7 @@ static CHAR * format_rational(IN RATIONAL const& rat,
 DG::DG(IN LIST<POLY*> & lst, bool is_build_graph)
 {
 	m_is_build_graph = false;
+	m_pool = smpool_create_handle(sizeof(DGEINFO) * 4, MEM_COMM);
 	rebuild(lst, is_build_graph);
 }
 
@@ -117,6 +118,7 @@ DG::~DG()
 			sch->destroy();
 		}
 	}
+	smpool_free_handle(m_pool);
 }
 
 
@@ -937,7 +939,7 @@ void DEP_POLY_MGR::clean()
 
 
 //Build execute conflict condition.
-void DEP_POLY_MGR::_build_acc_exec_cond(IN POLY const& from,
+void DEP_POLY_MGR::build_acc_exec_cond(IN POLY const& from,
 										IN POLY const& to,
 										IN ACC_MAT const& from_acc,
 										IN ACC_MAT const& to_acc,
@@ -973,7 +975,7 @@ void DEP_POLY_MGR::_build_acc_exec_cond(IN POLY const& from,
 
 
 //Build execute conflict condition to domain.
-void DEP_POLY_MGR::_build_domain_exec_cond(IN POLY const& from,
+void DEP_POLY_MGR::build_domain_exec_cond(IN POLY const& from,
 										IN POLY const& to,
 										OUT RMAT & res)
 {
@@ -1055,8 +1057,7 @@ DEP_POLY_LIST * DEP_POLY_MGR::conjoin(IN DEP_POLY const& c1,
 (¦Âfrom) == (¦Âto), depth is in 0~p-1.
 (¦Âfrom)+1¡Ü(¦Âto), at depth p.
 */
-void DEP_POLY_MGR::_build_context_relation(IN POLY const& from,
-										IN POLY const& to,
+void DEP_POLY_MGR::build_context_relation(POLY const& from, POLY const& to,
 										OUT RMAT & res)
 {
 
@@ -1123,7 +1124,7 @@ void DEP_POLY_MGR::build(IN POLY const& from,
 
 	UINT col_size = nvar * 2 + 1 + from.get_num_of_param();
 	RMAT context(1, col_size);
-	_build_context_relation(from, to, context);
+	build_context_relation(from, to, context);
 	if (first_diff_depth == 0) {
 		DEP_POLY * dp = new DEP_POLY(1, col_size);
 		DEP_POLY_flag(*dp) = DEP_LOOP_INDEP;
@@ -1140,9 +1141,9 @@ void DEP_POLY_MGR::build(IN POLY const& from,
 
 	{
 	RMAT domain(1, col_size);
-	_build_domain_exec_cond(from, to, domain);
+	build_domain_exec_cond(from, to, domain);
 	RMAT acc(context);
-	_build_acc_exec_cond(from, to, from_acc, to_acc, acc);
+	build_acc_exec_cond(from, to, from_acc, to_acc, acc);
 	RMAT comm_cs(domain);
 	comm_cs.grow_row(acc, 0, acc.get_row_size() - 1);
 	INT u = first_diff_depth == -1 ? max_depth : first_diff_depth;
@@ -1219,7 +1220,7 @@ LOOP INDEPENDENT analysis:
 'include_depth': build causality condition from depth 1 to p-1
 	or to p if the parameter is true.
 */
-void DEP_POLY_MGR::_build_common_equation(POLY const& from,
+void DEP_POLY_MGR::build_common_equation(POLY const& from,
 										POLY const& to,
 										INT depth,
 										bool include_depth,
@@ -1281,10 +1282,9 @@ void DEP_POLY_MGR::build_loop_carried(POLY const& from,
 	UINT const col_size = dp_rhs_idx + 1 + from.get_num_of_param();
 
 	//Build relations that depth is in 1~p-1.
-	_build_common_equation(from, to, depth, false, res);
+	build_common_equation(from, to, depth, false, res);
 
-	/*
-	Depth is p
+	/* Depth is p.
 	Build inequalities, if 'is_reverse' is false:
 		Afrom + (¦£from) + 1 ¡Ü Ato + (¦£to), and reform to,
 		 Afrom - Ato ¡Ü -1 + (-¦£from) + (+¦£to),
@@ -1341,7 +1341,7 @@ void DEP_POLY_MGR::build_loop_independent(POLY const& from,
 	UINT const col_size =
 		from.get_num_of_var() * 2 + 1 + from.get_num_of_param();
 	res.reinit(1, col_size);
-	_build_common_equation(from, to, depth, true, res);
+	build_common_equation(from, to, depth, true, res);
 }
 
 
@@ -3132,66 +3132,15 @@ void POLY::insert_localvar_cols(IN RMAT const& lv_cols)
 //
 //START POLY_MGR
 //
-DOMAIN_MAT * POLY_MGR::new_domain_mat()
-{
-	return new DOMAIN_MAT();
-}
-
-
-SCH_MAT * POLY_MGR::new_sch_mat()
-{
-	return new SCH_MAT();
-}
-
-
-ACC_MGR * POLY_MGR::new_acc_mgr()
-{
-	return new ACC_MGR();
-}
-
-
-POLY * POLY_MGR::new_poly()
-{
-	return new POLY();
-}
-
-
-CONT_MAT * POLY_MGR::new_context()
-{
-	return new CONT_MAT();
-}
-
-
-POLY * POLY_MGR::init_poly()
-{
-	POLY * p = new_poly();
-	POLY_domain(*p) = new_domain_mat();
-	POLY_sche(*p) = new_sch_mat();
-	POLY_acc_mgr(*p) = new_acc_mgr();
-	POLY_context(*p) = new_context();
-	return p;
-}
-
-
-void POLY_MGR::destroy_poly(POLY * p)
-{
-	delete POLY_domain(*p);
-	delete POLY_sche(*p);
-	delete POLY_acc_mgr(*p);
-	delete POLY_context(*p);
-	delete p;
-}
-
-
-void POLY_MGR::copy_poly_list(IN LIST<POLY*> & from,
-							OUT LIST<POLY*> & to)
+//Copy a list POLY from 'from' to 'to'.
+void POLY_MGR::copy_poly_list(IN LIST<POLY*> & from, OUT LIST<POLY*> & to)
 {
 	if (to.get_elem_count() != 0) {
 		free_poly_list(to);
 	}
-	for (POLY const* p = from.get_head();
-		 p != NULL; p = from.get_next()) {
-		POLY * pp = init_poly();
+
+	for (POLY const* p = from.get_head(); p != NULL; p = from.get_next()) {
+		POLY * pp = create_poly();
 		pp->copy(*p);
 		to.append_tail(pp);
 	}
@@ -3845,14 +3794,14 @@ bool POLY_TRAN::tiling(IN OUT POLY & poly,
 'changed_iv_idx': record the new position of 'iv_idx' after inserting a loop.
 'generated_iv_idx': record position of the inserted loop.
 	This loop is always the loop that be used to walk through tiles. */
-bool POLY_TRAN::tiling(IN OUT LIST<POLY*> & lst,
-					   UINT depth,
-					   UINT B,
-					   OUT UINT * changed_depth,
-					   OUT UINT * generated_depth)
+bool POLY_TRAN::tiling(IN OUT LIST<POLY*> & lst, UINT depth, UINT B,
+						OUT UINT * changed_depth,
+						OUT UINT * generated_depth)
 {
 	bool first = true;
+	#ifdef _DEBUG_
 	UINT c, g;
+	#endif
 	for (POLY * p = lst.get_head(); p != NULL; p = lst.get_next()) {
 		if (!tiling(*p, depth, B, changed_depth, generated_depth)) {
 			return false;

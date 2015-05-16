@@ -863,6 +863,7 @@ void BITSET::alloc(UINT size)
 //and modify set1 as result operand.
 void BITSET::bunion(BITSET const& bs)
 {
+	IS_TRUE0(this != &bs);
 	if (bs.m_ptr == NULL) { return; }
 	UINT cp_sz = bs.m_size; //size need to union.
 	if (m_size < bs.m_size) {
@@ -924,6 +925,7 @@ Returns a new set which is
 	{ x : member( x, 'set1' ) & ~ member( x, 'set2' ) }. */
 void BITSET::diff(BITSET const& bs)
 {
+	IS_TRUE0(this != &bs);
 	if (m_size == 0 || bs.m_size == 0) { return; }
 	UINT minsize = MIN(m_size, bs.m_size);
 	//Common part: copy the inverse bits.
@@ -953,6 +955,7 @@ void BITSET::diff(BITSET const& bs)
 //Returns the a new set which is intersection of 'set1' and 'set2'.
 void BITSET::intersect(BITSET const& bs)
 {
+	IS_TRUE0(this != &bs);
 	if (m_ptr == NULL) { return; }
 	if (m_size > bs.m_size) {
 		for (UINT i = 0; i < bs.m_size; i++) {
@@ -1035,6 +1038,7 @@ UINT BITSET::get_elem_count() const
 
 bool BITSET::is_equal(BITSET const& bs) const
 {
+	IS_TRUE0(this != &bs);
 	UINT size1 = m_size , size2 = bs.m_size;
 	if (size1 == 0) {
 		if (size2 == 0) { return true; }
@@ -1106,6 +1110,7 @@ if it is true, the bitset must have at least one
 element that does not belong to 'bs'. */
 bool BITSET::is_contain(BITSET const& bs, bool strict) const
 {
+	IS_TRUE0(this != &bs);
 	bool scon = false; //Set to true if 'this' strictly contained 'bs'.
 	INT const first_bit = get_first();
 	if (first_bit == -1) {
@@ -1176,6 +1181,7 @@ bool BITSET::is_empty() const
 
 bool BITSET::is_intersect(BITSET const& bs) const
 {
+	IS_TRUE0(this != &bs);
 	INT const first_bit = get_first();
 	if (first_bit == -1) {
 		return false;
@@ -1690,7 +1696,7 @@ UINT BITSET_MGR::count_mem(FILE * h)
 {
 	UINT count = 0;
 	C<BITSET*> * ct;
-	for (BITSET const* bs = m_bs_list.get_head_c(&ct);
+	for (BITSET const* bs = m_bs_list.get_head(&ct);
 		 bs != NULL; bs = m_bs_list.get_next(&ct)) {
 		count += bs->count_mem();
 	}
@@ -1827,6 +1833,10 @@ UINT SDBITSET_MGR::count_mem(FILE * h)
 		 d != NULL; d = m_dbs_list.get_next(&dt)) {
 		count += d->count_mem();
 	}
+
+	count += smpool_get_pool_size_handle(comm_pool);
+	count += smpool_get_pool_size_handle(ptr_pool);
+
 	#ifdef _DEBUG_
 	if (h != NULL) {
 		//Dump mem usage into file.
@@ -1884,7 +1894,7 @@ UINT SDBITSET_MGR::count_mem(FILE * h)
 void SBITSETC::bunion(SBITSETC const& src, SEG_MGR * sm,
 					  SC<SEG*> ** free_list, SMEM_POOL * pool)
 {
-	IS_TRUE0(this != &src);
+	IS_TRUE(this != &src, ("operate on same set"));
 	SC<SEG*> * srcst;
 	SC<SEG*> * tgtst, * prev_st = NULL;
 	SEG * t = segs.get_head(&tgtst);
@@ -1946,6 +1956,7 @@ void SBITSETC::bunion(UINT elem, SEG_MGR * sm,
 			return;
 		}
 	}
+
 	SEG * x = sm->new_seg();
 	if (sct != NULL) {
 		if (prev_sct == NULL) {
@@ -1964,7 +1975,7 @@ void SBITSETC::bunion(UINT elem, SEG_MGR * sm,
 void SBITSETC::copy(SBITSETC const& src, SEG_MGR * sm,
 					SC<SEG*> ** free_list, SMEM_POOL * pool)
 {
-	IS_TRUE0(this != &src);
+	IS_TRUE(this != &src, ("operate on same set"));
 	clean(sm, free_list);
 	SC<SEG*> * st;
 	for (SEG * s = src.segs.get_head(&st);
@@ -1982,6 +1993,24 @@ void SBITSETC::clean(SEG_MGR * sm, SC<SEG*> ** free_list)
 	for (SEG * s = segs.get_head(&st); s != NULL; s = segs.get_next(&st)) {
 		sm->free(s);
 	}
+	segs.clean(free_list);
+}
+
+
+void SBITSETC::destroy_seg_and_clean(SEG_MGR * sm, SC<SEG*> ** free_list)
+{
+	SC<SEG*> * iter;
+	for (SEG * s = segs.get_head(&iter);
+		 s != NULL; s = segs.get_next(&iter)) {
+		//We are not going to give it back to SEG_MGR.
+		#ifdef _DEBUG_
+		sm->dec_seg_count();
+		#endif
+		delete s;
+	}
+
+	//Because SC<SEG*> is always allocated from pool, recycle
+	//it to free_list, at last give it back to the pool.
 	segs.clean(free_list);
 }
 
@@ -2024,7 +2053,7 @@ void SBITSETC::diff(UINT elem, SEG_MGR * sm, SC<SEG*> ** free_list)
 //will be modified.
 void SBITSETC::diff(SBITSETC const& src, SEG_MGR * sm, SC<SEG*> ** free_list)
 {
-	IS_TRUE0(this != &src);
+	IS_TRUE(this != &src, ("operate on same set"));
 	SC<SEG*> * tgtst, * prev_st = NULL, * next_st;
 	segs.get_head(&tgtst);
 	next_st = tgtst;
@@ -2181,7 +2210,7 @@ INT SBITSETC::get_next(UINT elem, SC<SEG*> ** cur) const
 
 bool SBITSETC::is_equal(SBITSETC const& src) const
 {
-	IS_TRUE0(this != &src);
+	IS_TRUE(this != &src, ("operate on same set"));
 	SC<SEG*> * srcst;
 	SC<SEG*> * tgtst;
 	src.segs.get_head(&srcst);
@@ -2206,7 +2235,7 @@ bool SBITSETC::is_equal(SBITSETC const& src) const
 
 bool SBITSETC::is_intersect(SBITSETC const& src) const
 {
-	IS_TRUE0(this != &src);
+	IS_TRUE(this != &src, ("operate on same set"));
 	SC<SEG*> * srcst;
 	SC<SEG*> * tgtst;
 	src.segs.get_head(&srcst);
@@ -2268,7 +2297,7 @@ bool SBITSETC::is_empty() const
 void SBITSETC::intersect(SBITSETC const& src, SEG_MGR * sm,
 						 SC<SEG*> ** free_list)
 {
-	IS_TRUE0(this != &src);
+	IS_TRUE(this != &src, ("operate on same set"));
 	SC<SEG*> * tgtst, * prev_st = NULL, * next_st;
 	segs.get_head(&tgtst);
 	next_st = tgtst;

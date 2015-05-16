@@ -39,15 +39,15 @@ class DEP_POLY_MGR;
 //
 //START DEP_POLY
 //
-#define DEP_LOOP_CARRIED	1
-#define DEP_LOOP_INDEP		2
+#define DEP_LOOP_CARRIED		1
+#define DEP_LOOP_INDEP			2
 #define DEP_POLY_id(d)			((d).id)
 #define DEP_POLY_flag(d)		((d).flag)
 #define DEP_POLY_rhs_idx(d)		((d).rhs_idx)
 class DEP_POLY : public RMAT {
 public:
-	UINT id; //unique id
-	UINT flag; //record dependence-type:LOOP_CARRIED, LOOP_INDEPENDENT
+	UINT id; //each dep-poly has an unique id.
+	UINT flag; //record dependence-type: LOOP_CARRIED, LOOP_INDEPENDENT
 	UINT rhs_idx;
 
 	DEP_POLY()
@@ -72,10 +72,18 @@ public:
 	}
 
 	~DEP_POLY() {}
+
+	void copy(IN DEP_POLY const& dp);
+	void copy(IN RMAT const& r, UINT rhs_idx);
+
+	void dump();
+	void dump(FILE * h, UINT indent);
+
 	inline UINT get_from_iv_idx_start() const { return 0; }
 	inline UINT get_to_iv_idx_start() const { return rhs_idx / 2; }
 	inline UINT get_num_of_from_iv() const { return get_to_iv_idx_start(); }
 	inline UINT get_num_of_to_iv() const { return get_num_of_from_iv(); }
+
 	void intersect(IN RMAT const& r);
 	void intersect(IN DEP_POLY const& dp);
 	bool is_empty(bool keepit, VC_MAT const* vc);
@@ -83,15 +91,14 @@ public:
 	{ return HAVE_FLAG(DEP_POLY_flag(*this), DEP_LOOP_CARRIED); }
 	inline bool is_loop_indep() const
 	{ return HAVE_FLAG(DEP_POLY_flag(*this), DEP_LOOP_INDEP); }
-	void copy(IN DEP_POLY const& dp);
-	void copy(IN RMAT const& r, UINT rhs_idx);
-	void elim_aux_var(IN POLY const& from, IN POLY const& to);
+
 	void insert_loop_before(UINT iv_idx);
 	void insert_local_var(OUT UINT * lv1_idx, OUT UINT * lv2_idx);
+
+	void elim_aux_var(IN POLY const& from, IN POLY const& to);
+
 	void remove_local_var();
 	void remove_loop(UINT iv_idx);
-	void dump();
-	void dump(FILE * h, UINT indent);
 };
 //END DEP_POLY
 
@@ -124,7 +131,7 @@ public:
 
 	DPVEC(UINT from_id, UINT to_id);
 	~DPVEC();
-	bool is_intersect_empty(IN DPVEC const& dpvec,
+	bool is_intersect_empty(DPVEC const& dpvec,
 							bool is_cross_depth = false) const;
 	void free_elem();
 	void copy(DPVEC const& d);
@@ -137,7 +144,6 @@ public:
 #define REF_HASH_from_id(d)		((d).from_stmt_id)
 #define REF_HASH_to_id(d)		((d).to_stmt_id)
 #define MAKE_REF_ID(d)			(DPVEC_from_id(d) | DPVEC_to_id(d))
-
 
 class DPVEC_HF {
 public:
@@ -177,7 +183,6 @@ public:
 #define MAKE_STMT_ID(d)		(REF_HASH_from_id(d) | REF_HASH_to_id(d))
 
 class REF_HASH_HF {
-
 public:
 	UINT get_hash_value(REF_HASH * d, UINT bucket_size) const
 	{ return MAKE_STMT_ID(*d) % bucket_size; }
@@ -211,14 +216,10 @@ public:
 		STMT_HASH::clean();
 	}
 
-	DPVEC * find(IN POLY const& from,
-				IN POLY const& to,
-				IN ACC_MAT const& am1,
-				IN ACC_MAT const& am2);
-	DPVEC * append(IN POLY const& from,
-				IN POLY const& to,
-				IN ACC_MAT const& am1,
-				IN ACC_MAT const& am2);
+	DPVEC * find(POLY const& from, POLY const& to,
+				 ACC_MAT const& am1, ACC_MAT const& am2);
+	DPVEC * append(POLY const& from, POLY const& to,
+				   ACC_MAT const& am1, ACC_MAT const& am2);
 };
 
 
@@ -227,34 +228,25 @@ public:
 //
 class DEP_POLY_MGR {
 	DEP_POLY_HASH m_dh;
-	void _build_common_equation(IN POLY const& from,
-								IN POLY const& to,
-								INT depth,
-								bool include_depth,
+	void build_common_equation(POLY const& from, POLY const& to,
+								INT depth, bool include_depth,
 								OUT RMAT & res);
-	void _build_domain_exec_cond(IN POLY const& from,
-								IN POLY const& to,
+	void build_domain_exec_cond(POLY const& from, POLY const& to,
 								OUT RMAT & res);
-	void _build_acc_exec_cond(IN POLY const& from,
-								IN POLY const& to,
-								IN ACC_MAT const& from_acc,
-								IN ACC_MAT const& to_acc,
-								OUT RMAT & res);
-	void _build_context_relation(IN POLY const& from,
-								IN POLY const& to,
+	void build_acc_exec_cond(POLY const& from, POLY const& to,
+							ACC_MAT const& from_acc, ACC_MAT const& to_acc,
+							OUT RMAT & res);
+	void build_context_relation(POLY const& from, POLY const& to,
 								OUT RMAT & res);
 public:
 	DEP_POLY_MGR();
 	~DEP_POLY_MGR();
 	void clean();
 
-	DEP_POLY_LIST * conjoin(IN DEP_POLY const& c1,
-							IN DEP_POLY const& c2,
-							IN VC_MAT const* vc);
-	DPVEC * get_dpvec(IN POLY const& from,
-					IN POLY const& to,
-					IN ACC_MAT const& am1,
-					IN ACC_MAT const& am2);
+	DEP_POLY_LIST * conjoin(DEP_POLY const& c1,	DEP_POLY const& c2,
+							VC_MAT const* vc);
+	DPVEC * get_dpvec(POLY const& from, POLY const& to,
+					ACC_MAT const& am1, ACC_MAT const& am2);
 
 	void get_all_dep_poly(IN OUT LIST<DEP_POLY*> & lst);
 	void insert_local_var(OUT UINT * lv1_idx = NULL,
@@ -262,49 +254,30 @@ public:
 	void insert_loop_before(UINT iv_idx);
 	void remove_loop(UINT iv_idx);
 	void remove_local_var();
-	void revise_neg_iv_cs(IN POLY const& from,
-						IN POLY const& to,
+	void revise_neg_iv_cs(POLY const& from, POLY const& to,
 						IN OUT DEP_POLY & cs);
-	VC_MAT * build_vc(IN POLY const& from,
-					IN POLY const& to,
-					OUT VC_MAT & vc);
-	void build_map_iv_coeff(IN POLY const& from,
-							IN POLY const& to,
+	VC_MAT * build_vc(POLY const& from, POLY const& to, OUT VC_MAT & vc);
+	void build_map_iv_coeff(POLY const& from, POLY const& to,
 							OUT SVECTOR<INT> & coeff);
-	void build_loop_independent(IN POLY const& from,
-								IN POLY const& to,
-								bool is_reverse,
-								UINT depth,
+	void build_loop_independent(POLY const& from, POLY const& to,
+								bool is_reverse, UINT depth,
 								OUT RMAT & res);
-	void build_loop_carried(IN POLY const& from,
-							IN POLY const& to,
-							bool is_reverse,
-							UINT depth,
+	void build_loop_carried(POLY const& from, POLY const& to,
+							bool is_reverse, UINT depth,
 							OUT RMAT & res);
-	void build_syn_order_relation(IN POLY const& from,
-								IN POLY const& to,
-								bool is_reverse,
-								UINT depth,
+	void build_syn_order_relation(POLY const& from, POLY const& to,
+								bool is_reverse, UINT depth,
 								OUT RMAT & res);
-	void build(IN POLY const& from,
-				IN POLY const& to,
-				IN ACC_MAT const& from_acc,
-				IN ACC_MAT const& to_acc,
-				IN VC_MAT const* vc,
-				OUT DPVEC & dpvec,
-				bool is_reverse);
-	DPVEC * build_dep_poly(IN POLY const& from,
-						IN POLY const& to,
-						IN ACC_MAT const& from_acc,
-						IN ACC_MAT const& to_acc,
-						IN VC_MAT const* vc,
-						bool is_reverse);
-	void build_dep_poly(IN POLY const& from,
-						IN POLY const& to,
-						IN ACC_MAT const& from_acc,
-						IN ACC_MAT const& to_acc,
-						IN VC_MAT const* vc,
-						OUT DPVEC & dpvec,
+	void build(POLY const& from, POLY const& to,
+			   ACC_MAT const& from_acc, ACC_MAT const& to_acc,
+			   VC_MAT const* vc, OUT DPVEC & dpvec,
+			   bool is_reverse);
+	DPVEC * build_dep_poly(POLY const& from, POLY const& to,
+						ACC_MAT const& from_acc, ACC_MAT const& to_acc,
+						VC_MAT const* vc, bool is_reverse);
+	void build_dep_poly(POLY const& from, POLY const& to,
+						ACC_MAT const& from_acc, ACC_MAT const& to_acc,
+						VC_MAT const* vc, OUT DPVEC & dpvec,
 						bool is_reverse);
 	void dump(IN LIST<POLY*> & lst);
 };
@@ -327,36 +300,50 @@ public:
 };
 
 
+//Dependence Graph.
 class DG : public GRAPH {
 protected:
 	//True if one intends building graph at dependence analysis.
 	bool m_is_build_graph;
 	SVECTOR<RMAT*> m_sch_mat; //record schedule matrix for each POLY.
 	DEP_POLY_MGR m_orig_dpmgr; //record original dependencn polyhedra.
+	SMEM_POOL * m_pool;
+
+	void * xmalloc(ULONG size)
+	{
+		IS_TRUE0(m_pool);
+		void * p = smpool_malloc_h(size, m_pool);
+		IS_TRUE0(p);
+		memset(p, 0, size);
+		return p;
+	}
 public:
 	DG(IN LIST<POLY*> & lst, bool is_build_graph = false);
 	virtual ~DG();
-	virtual bool is_red_stmt(IN POLY const& p);
-	virtual bool is_red_pair(IN POLY const& p1,
-							IN POLY const& p2,
-							IN ACC_MAT const& am1,
-							IN ACC_MAT const& am2);
+	virtual bool is_red_stmt(POLY const& p);
+	virtual bool is_red_pair(POLY const& p1, POLY const& p2,
+							 ACC_MAT const& am1, ACC_MAT const& am2);
 	bool is_build_graph() const { return m_is_build_graph; }
 	bool is_legal(IN LIST<POLY*> & lst);
-	void rebuild(IN LIST<POLY*> & lst, bool is_build_graph = false);
-	void set_dep_poly(IN VERTEX const* from,
-					IN VERTEX const* to,
-					IN DPVEC const* dp);
-	void set_dep_poly(IN EDGE * e, IN DPVEC const* dp);
-	DPVEC const* get_dep_poly(IN EDGE const* e) const;
-	void set_poly(IN VERTEX * v, IN POLY * p);
-	POLY const* get_poly(IN VERTEX const* v) const;
-	void set_from_quasi_func(IN EDGE * e, IN RMAT * quasi);
+
+	//Get the dependence polyhedron.
+	DPVEC const* get_dep_poly(EDGE const* e) const;
+
+	//Get the polyhedron correspond to v.
+	POLY const* get_poly(VERTEX const* v) const;
 	RMAT * get_from_quasi_func(IN EDGE const* e) const;
-	void set_to_quasi_func(IN EDGE * e, IN RMAT * quasi);
 	RMAT * get_to_quasi_func(IN EDGE const* e) const;
 	RMAT * get_sch_mat(IN POLY const* p);
 	inline DEP_POLY_MGR * get_orig_dep_mgr() { return &m_orig_dpmgr; }
+
+	void rebuild(IN LIST<POLY*> & lst, bool is_build_graph = false);
+
+	void set_dep_poly(VERTEX const* from, VERTEX const* to, DPVEC const* dp);
+	void set_dep_poly(IN EDGE * e, IN DPVEC const* dp);
+	void set_poly(IN VERTEX * v, IN POLY * p);
+	void set_from_quasi_func(IN EDGE * e, IN RMAT * quasi);
+	void set_to_quasi_func(IN EDGE * e, IN RMAT * quasi);
+
 	bool verify(IN LIST<POLY*> & lst, IN DEP_POLY_HASH & dh);
 };
 //END DG
@@ -366,13 +353,11 @@ public:
 //
 //START ACC_MAT
 //
-/*
-The designation of artifical array which can be privatized.
+/* The designation of artifical array which can be privatized.
   General_Reduction
   Close_Phi
   Cross_BB_scalar_dependence
-  Commutative_Associative_Reduction
-*/
+  Commutative_Associative_Reduction */
 #define ACC_MAT_id(a)			((a).id)
 #define ACC_MAT_arr_id(a)		((a).array_base_id)
 class ACC_MAT : public RMAT {
@@ -451,10 +436,8 @@ public:
 //
 //START SCH_MAT
 //
-/*
-Before any polyhedral transformations,
-A is identity, ¦£ is 0, and ¦Â is vector.
-*/
+//Before any polyhedral transformations,
+//A is identity, ¦£ is 0, and ¦Â is vector.
 class SCH_MAT : public RMAT {
 protected:
 	/*
@@ -462,12 +445,10 @@ protected:
 	*/
 	VC_MAT m_map_iv; //rows indicate depth, cols indicate iv_idx.
 
-	/*
-	Index of column of static statment/loop syntactic
+	/* Index of column of static statment/loop syntactic
 	order, and starting with 0.
 	Columns from m_syn_order_idx to
-	get_col_size() - 1 composes the Gamma(¦£) matrix.
-	*/
+	get_col_size() - 1 composes the Gamma(¦£) matrix. */
 	UINT m_syn_order_idx;
 
 	/*
@@ -560,13 +541,11 @@ public:
 //
 //START POLY
 //
-/*
-POLY correspond to individual statement.
+/* POLY correspond to individual statement.
 It describe various polyhedral information, such as:
 CONTEXT, DOMAIN, ACCESS FUNCTION, SCHEDULING FUNCTION.
 The 'rhs_idx' of ACC_MAT and CONTEXT must have same value
-as 'domain_rhs_idx'.
-*/
+as 'domain_rhs_idx'. */
 #define POLY_id(p)						((p).id)
 #define POLY_domain(p)					((p).domain)
 #define POLY_domain_rhs_idx(p)			((p).domain_rhs_idx)
@@ -581,8 +560,7 @@ protected:
 	SVECTOR<CHAR*> m_var_name; //record variable name, used for dump.
 public:
 	UINT id; //unique id.
-	/*
-	The context describes known restrictions concerning the parameters
+	/* The context describes known restrictions concerning the parameters
 	and relations in between the parameters.
 
 		void f(char a, unsigned short b)
@@ -647,18 +625,50 @@ public:
 class POLY_MGR {
 public:
 	virtual ~POLY_MGR() {}
-	virtual POLY * new_poly();
-	virtual DOMAIN_MAT * new_domain_mat();
-	virtual SCH_MAT * new_sch_mat();
-	virtual ACC_MGR * new_acc_mgr();
-	virtual CONT_MAT * new_context();
-	virtual POLY * init_poly();
-	virtual void destroy_poly(POLY * p);
-	virtual void copy_poly_list(IN LIST<POLY*> & from, OUT LIST<POLY*> & to);
-	virtual void free_poly_list(IN OUT LIST<POLY*> & lst);
-	virtual void remove_virtual_depth(IN OUT LIST<POLY*> & lst);
-	virtual void grow_max_depth(IN OUT LIST<POLY*> & lst);
-	virtual void dump_poly_list(IN LIST<POLY*> & lst);
+
+	virtual DOMAIN_MAT * new_domain_mat() { return new DOMAIN_MAT(); }
+	virtual SCH_MAT * new_sch_mat() { return new SCH_MAT(); }
+	virtual ACC_MGR * new_acc_mgr() { return new ACC_MGR(); }
+	virtual POLY * new_poly() { return new POLY(); }
+	virtual CONT_MAT * new_context() { return new CONT_MAT(); }
+
+	//Create a polyhedron represetation.
+	POLY * create_poly()
+	{
+		POLY * p = new_poly();
+		POLY_domain(*p) = new_domain_mat();
+		POLY_sche(*p) = new_sch_mat();
+		POLY_acc_mgr(*p) = new_acc_mgr();
+		POLY_context(*p) = new_context();
+		return p;
+	}
+
+	//Destroy polyhedron represetation.
+	void destroy_poly(POLY * p)
+	{
+		delete POLY_domain(*p);
+		delete POLY_sche(*p);
+		delete POLY_acc_mgr(*p);
+		delete POLY_context(*p);
+		delete p;
+	}
+
+	//Dump a list of polyhedrons.
+	void dump_poly_list(IN LIST<POLY*> & lst);
+
+	//Given a list of polyhedrons with different dimension,
+	//this function find the maximum dimension and make all
+	//polyhedrons to grow up to the maximum dimension.
+	void grow_max_depth(IN OUT LIST<POLY*> & lst);
+
+	//Copy a list of POLY from 'from' to 'to'.
+	void copy_poly_list(IN LIST<POLY*> & from, OUT LIST<POLY*> & to);
+
+	//Copy a list of POLY.
+	void free_poly_list(LIST<POLY*> & lst);
+
+	//Remove virtual depth for each polyhedron in list.
+	void remove_virtual_depth(IN OUT LIST<POLY*> & lst);
 };
 //END POLY_MGR
 
@@ -667,9 +677,7 @@ public:
 //
 //POLY TREE
 //
-/*
-Record Abstract Tree Node during code generation.
-*/
+//Record Abstract Tree Node during code generation.
 #define POLY_TREE_UNDEF		0
 #define POLY_TREE_LOOP		1
 #define POLY_TREE_STMT		2
@@ -688,9 +696,7 @@ public:
 };
 
 
-/*
-Operations of POLY_TREE.
-*/
+//Operations of POLY_TREE.
 class POLY_TREE_MGR {
 	SMEM_POOL * m_pool;
 public:
