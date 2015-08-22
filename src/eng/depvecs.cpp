@@ -33,6 +33,9 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rational.h"
 #include "flty.h"
 #include "xmat.h"
+
+using namespace xcom;
+
 #include "depvecs.h"
 
 UINT DD_Le (DD const& a, DD const& b)
@@ -125,30 +128,30 @@ bool operator != (DD const& a, DD const& b)
 }
 
 
-bool operator < (DD const& a, DD const& b)
+bool operator < (DD const&, DD const&)
 {
-	IS_TRUE(0, ("utilize DD_Lt"));
+	ASSERT(0, ("utilize DD_Lt"));
 	return false;
 }
 
 
-bool operator <= (DD const& a, DD const& b)
+bool operator <= (DD const&, DD const&)
 {
-	IS_TRUE(0, ("utilize DD_Le"));
+	ASSERT(0, ("utilize DD_Le"));
 	return false;
 }
 
 
-bool operator > (DD const& a, DD const& b)
+bool operator > (DD const&, DD const&)
 {
-	IS_TRUE(0, ("utilize DD_Gt"));
+	ASSERT(0, ("utilize DD_Gt"));
 	return false;
 }
 
 
-bool operator >= (DD const& a, DD const& b)
+bool operator >= (DD const&, DD const&)
 {
-	IS_TRUE(0, ("utilize DD_Ge"));
+	ASSERT(0, ("utilize DD_Ge"));
 	return false;
 }
 
@@ -161,14 +164,14 @@ DD operator * (DD const& a, DD const& b)
 		switch (b.dir) {
 		case DT_DIS: res.dir = DT_DIS; res.dis = a.dis * b.dis; break;
 		case DT_POS:
-			IS_TRUE(b.dis >= 0, ("min val of POS is 0"));
+			ASSERT(b.dis >= 0, ("min val of POS is 0"));
 			res.dis = a.dis * b.dis;
 			if (a.dis > 0) { res.dir = DT_POS; }
 			else if (a.dis == 0) { res.dir = DT_DIS; }
 			else { res.dir = DT_NEG; }
 			break;
 		case DT_NEG:
-			IS_TRUE(b.dis <= 0, ("max val of NEG is 0"));
+			ASSERT(b.dis <= 0, ("max val of NEG is 0"));
 			res.dis = a.dis * b.dis;
 			if (a.dis > 0) { res.dir = DT_NEG; }
 			else if (a.dis == 0) { res.dir = DT_DIS; }
@@ -179,43 +182,43 @@ DD operator * (DD const& a, DD const& b)
 			if (a.dis == 0) { res.dir = DT_DIS; }
 			else { res.dir = DT_MISC; }
 			break;
-		default: IS_TRUE(0, ("illegal operand"));
+		default: ASSERT(0, ("illegal operand"));
 		}
 		break;
 	case DT_POS:
-		IS_TRUE(a.dis >= 0, ("min of POS is 0"));
+		ASSERT(a.dis >= 0, ("min of POS is 0"));
 		res.dir = b.dir;
 		res.dis = a.dis * b.dis;
 		switch (b.dir) {
 		case DT_DIS: return b * a;
-		case DT_POS: IS_TRUE(b.dis >= 0, ("min of POS is 1")); break;
-		case DT_NEG: IS_TRUE(b.dis <= 0, ("max of NEG is -1")); break;
+		case DT_POS: ASSERT(b.dis >= 0, ("min of POS is 1")); break;
+		case DT_NEG: ASSERT(b.dis <= 0, ("max of NEG is -1")); break;
 		case DT_MISC: res.dis = 0; break;
-		default: IS_TRUE(0, ("illegal operand"));
+		default: ASSERT(0, ("illegal operand"));
 		}
 		break;
 	case DT_NEG:
-		IS_TRUE(a.dis <= 0, ("max of NEG is 0"));
+		ASSERT(a.dis <= 0, ("max of NEG is 0"));
 		res.dir = b.dir;
 		res.dis = a.dis * b.dis;
 		switch (b.dir) {
 		case DT_DIS: return b * a;
-		case DT_POS: IS_TRUE(b.dis >= 0, ("min val is 1")); break;
-		case DT_NEG: IS_TRUE(b.dis <= 0, ("illegal bound")); break;
+		case DT_POS: ASSERT(b.dis >= 0, ("min val is 1")); break;
+		case DT_NEG: ASSERT(b.dis <= 0, ("illegal bound")); break;
 		case DT_MISC: res.dis = 0; break;
-		default: IS_TRUE(0, ("illegal operand"));
+		default: ASSERT(0, ("illegal operand"));
 		}
 		break;
 	case DT_MISC: res.dir = DT_MISC; res.dis = 0; break;
-	default: IS_TRUE(0, ("illegal operand"));
+	default: ASSERT(0, ("illegal operand"));
 	}
 	return res;
 }
 
 
-DD operator / (DD const& a, DD const& b)
+DD operator / (DD const&, DD const&)
 {
-	IS_TRUE(0, ("NYI"));
+	ASSERT(0, ("NYI"));
 	return DD(0);
 }
 
@@ -250,38 +253,38 @@ DD operator + (DD const& a, DD const& b)
 	}
 	switch (a.dir) {
 	case DT_POS:
-		IS_TRUE(a.dis >= 0, ("illegal bound"));
+		ASSERT(a.dis >= 0, ("illegal bound"));
 		switch (b.dir) {
 		case DT_POS:
-			IS_TRUE(b.dis >= 0, ("illegal bound"));
+			ASSERT(b.dis >= 0, ("illegal bound"));
 			res.dis = a.dis + b.dis;
 			res.dir = DT_POS;
 			break;
 		case DT_NEG:
-			IS_TRUE(b.dis <= 0, ("illegal bound"));
+			ASSERT(b.dis <= 0, ("illegal bound"));
 			res.dis = 0;
 			res.dir = DT_MISC;
 			break;
-		default: IS_TRUE(0, ("illegal operand"));
+		default: ASSERT(0, ("illegal operand"));
 		}
 		break;
 	case DT_NEG:
-		IS_TRUE(a.dis <= 0, ("illegal bound"));
+		ASSERT(a.dis <= 0, ("illegal bound"));
 		switch (b.dir) {
 		case DT_POS:
-			IS_TRUE(b.dis >= 1, ("illegal bound"));
+			ASSERT(b.dis >= 1, ("illegal bound"));
 			res.dis = 0;
 			res.dir = DT_MISC;
 			break;
 		case DT_NEG:
-			IS_TRUE(b.dis <= 0, ("illegal bound"));
+			ASSERT(b.dis <= 0, ("illegal bound"));
 			res.dis = a.dis + b.dis;
 			res.dir = DT_NEG;
 			break;
-		default: IS_TRUE(0, ("illegal operand"));
+		default: ASSERT(0, ("illegal operand"));
 		}
 		break;
-	default: IS_TRUE(0, ("illegal operand"));
+	default: ASSERT(0, ("illegal operand"));
 	}
 	return res;
 }
@@ -297,7 +300,7 @@ DD operator - (DD const& a)
 	case DT_POS: res.dir = DT_NEG; res.dis = -a.dis; break;
 	case DT_NEG: res.dir = DT_POS; res.dis = -a.dis; break;
 	case DT_MISC: res.dir = DT_MISC; res.dis = 0; break;
-	default: IS_TRUE(0, ("illegal operand"));
+	default: ASSERT(0, ("illegal operand"));
 	}
 	return res;
 }
@@ -314,7 +317,7 @@ DD operator - (DD const& a, DD const& b)
 //
 //START DVECS
 //
-static void Init_VecE(MATRIX<DD> * pbasis);
+static void Init_VecE(Matrix<DD> * pbasis);
 static void Dvecs_Dumpf_By_Handle(void const* pbasis, FILE * h);
 static void Dvecs_Dumpf(void const* pbasis, CHAR const* name, bool is_del);
 static void Dvecs_Dumps(void const* pbasis);
@@ -323,7 +326,6 @@ DVECS::DVECS()
 	m_is_init = false;
 	init();
 	INHR i;
-	memset(&i, 0, sizeof(INHR));
 	i.hi = Init_VecE;
 	i.hds = Dvecs_Dumps;
 	i.hdf = Dvecs_Dumpf;
@@ -332,12 +334,11 @@ DVECS::DVECS()
 }
 
 
-DVECS::DVECS(DVECS const& m) : MATRIX<DD>(m)
+DVECS::DVECS(DVECS const& m) : Matrix<DD>(m)
 {
 	m_is_init = false;
 	init();
 	INHR i;
-	memset(&i, 0, sizeof(INHR));
 	i.hi = Init_VecE;
 	i.hds = Dvecs_Dumps;
 	i.hdf = Dvecs_Dumpf;
@@ -352,7 +353,6 @@ DVECS::DVECS(UINT row, UINT col)
 	init();
 	grow_all(row, col);
 	INHR i;
-	memset(&i, 0, sizeof(INHR));
 	i.hi = Init_VecE;
 	i.hds = Dvecs_Dumps;
 	i.hdf = Dvecs_Dumpf;
@@ -383,17 +383,17 @@ void DVECS::destroy()
 
 DVECS& DVECS::operator = (DVECS const& m)
 {
-	((MATRIX<DD>*)this)->copy(*((MATRIX<DD>*)&m));
+	((Matrix<DD>*)this)->copy(*((Matrix<DD>*)&m));
 	return *this;
 }
 
 
-DVECS& DVECS::operator = (RMAT const& m)
+DVECS& DVECS::operator = (RMat const& m)
 {
 	reinit(m.get_row_size(), m.get_col_size());
 	for (UINT i = 0; i < m_row_size; i++) {
 		for (UINT j = 0; j < m_col_size; j++) {
-			IS_TRUE(m.get(i,j).den() == 1, ("dep element only be integer"));
+			ASSERT(m.get(i,j).den() == 1, ("dep element only be integer"));
 			set(i, j, DD(m.get(i,j).num()));
 		}
 	}
@@ -401,7 +401,7 @@ DVECS& DVECS::operator = (RMAT const& m)
 }
 
 
-DVECS& DVECS::operator = (INTMAT const& m)
+DVECS& DVECS::operator = (INTMat const& m)
 {
 	reinit(m.get_row_size(), m.get_col_size());
 	for (UINT i = 0; i < m_row_size; i++) {
@@ -419,8 +419,8 @@ DVECS& DVECS::operator = (INTMAT const& m)
 */
 void DVECS::sete(UINT num, ...)
 {
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	IS_TRUE(num <= m_col_size * m_row_size, ("set out of boundary."));
+	ASSERT(m_is_init, ("not yet initialize."));
+	ASSERT(num <= m_col_size * m_row_size, ("set out of boundary."));
 	if (num <= 0) {
 		return;
 	}
@@ -445,10 +445,10 @@ void DVECS::sete(UINT num, ...)
 'num': number of value
 'dd": value list, type is 'DD'
 */
-void DVECS::setv(UINT num, SVECTOR<DD> const& dd)
+void DVECS::setv(UINT num, Vector<DD> const& dd)
 {
-	IS_TRUE(m_is_init, ("not yet initialize."));
-	IS_TRUE(num <= m_col_size * m_row_size, ("set out of boundary."));
+	ASSERT(m_is_init, ("not yet initialize."));
+	ASSERT(num <= m_col_size * m_row_size, ("set out of boundary."));
 	if (num <= 0) {
 		return;
 	}
@@ -465,10 +465,10 @@ void DVECS::setv(UINT num, SVECTOR<DD> const& dd)
 }
 
 
-//Converting DVECs to RMAT if all elements be rational.
-bool DVECS::cvt_to(OUT RMAT & r)
+//Converting DVECs to RMat if all elements be rational.
+bool DVECS::cvt_to(OUT RMat & r)
 {
-	IS_TRUE(m_is_init, ("not yet initialize."));
+	ASSERT(m_is_init, ("not yet initialize."));
 	r.reinit(get_row_size(), get_col_size());
 	for (UINT i = 0; i < get_row_size(); i++) {
 		for (UINT j = 0; j < get_col_size(); j++) {
@@ -488,7 +488,7 @@ bool DVECS::cvt_to(OUT RMAT & r)
 
 
 //init vec element
-static void Init_VecE(MATRIX<DD> * pbasis)
+static void Init_VecE(Matrix<DD> * pbasis)
 {
 	DD dd(DT_MISC);
 	for (UINT i = 0; i < pbasis->get_row_size(); i++) {
@@ -502,7 +502,7 @@ static void Init_VecE(MATRIX<DD> * pbasis)
 static void Dvecs_Dumpf_By_Handle(void const* pbasis, FILE * h)
 {
 	static INT g_count = 0;
-	IS_TRUE(h, ("dump file handle is NULL"));
+	ASSERT(h, ("dump file handle is NULL"));
 	fprintf(h, "\nMATRIX dump id:%d\n", g_count++);
 
 	//start
@@ -521,7 +521,7 @@ static void Dvecs_Dumpf_By_Handle(void const* pbasis, FILE * h)
 				case DT_POS:sprintf(buf, "%s%-3d", ">=", dd.dis);break;
 				case DT_NEG:sprintf(buf, "%s%-3d", "<=", dd.dis);break;
 				case DT_MISC:sprintf(buf, "%s%-3d", " *", dd.dis);break;
-				default:IS_TRUE(0,("unknown dep type"));
+				default:ASSERT(0,("unknown dep type"));
 				}
 			}
 			fprintf(h, "%s%s", buf, blank);
@@ -542,9 +542,8 @@ static void Dvecs_Dumpf(void const* pbasis, CHAR const* name, bool is_del)
 		unlink(name);
 	}
 
-	static INT g_count = 0;
 	FILE * h = fopen(name, "a+");
-	IS_TRUE(h, ("%s create failed!!!", name));
+	ASSERT(h, ("%s create failed!!!", name));
 	Dvecs_Dumpf_By_Handle(pbasis, h);
 	fclose(h);
 }
@@ -570,7 +569,7 @@ static void Dvecs_Dumps(void const* pbasis)
 				case DT_POS:sprintf(buf, "%s%-3d", ">=", dd.dis);break;
 				case DT_NEG:sprintf(buf, "%s%-3d", "<=", dd.dis);break;
 				case DT_MISC:sprintf(buf, "%s%-3d", " *", dd.dis);break;
-				default:IS_TRUE(0,("unknown dep type"));
+				default:ASSERT(0,("unknown dep type"));
 				}
 			}
 			printf("%s%s", buf, blank);
@@ -584,11 +583,11 @@ static void Dvecs_Dumps(void const* pbasis)
 
 DVECS operator * (DVECS const& a, DVECS const& b)
 {
-	IS_TRUE(a.m_is_init && b.m_is_init, ("not yet initialize."));
+	ASSERT(a.m_is_init && b.m_is_init, ("not yet initialize."));
 	DVECS c;
-	MATRIX<DD> *cp = (MATRIX<DD>*)&c;
-	MATRIX<DD> *ap = (MATRIX<DD>*)&a;
-	MATRIX<DD> *bp = (MATRIX<DD>*)&b;
+	Matrix<DD> *cp = (Matrix<DD>*)&c;
+	Matrix<DD> *ap = (Matrix<DD>*)&a;
+	Matrix<DD> *bp = (Matrix<DD>*)&b;
 	*cp = *ap * *bp;
 	return c;
 }
@@ -596,11 +595,11 @@ DVECS operator * (DVECS const& a, DVECS const& b)
 
 DVECS operator + (DVECS const& a, DVECS const& b)
 {
-	IS_TRUE(a.m_is_init && b.m_is_init, ("not yet initialize."));
+	ASSERT(a.m_is_init && b.m_is_init, ("not yet initialize."));
 	DVECS c;
-	MATRIX<DD> *cp = (MATRIX<DD>*)&c;
-	MATRIX<DD> *ap = (MATRIX<DD>*)&a;
-	MATRIX<DD> *bp = (MATRIX<DD>*)&b;
+	Matrix<DD> *cp = (Matrix<DD>*)&c;
+	Matrix<DD> *ap = (Matrix<DD>*)&a;
+	Matrix<DD> *bp = (Matrix<DD>*)&b;
 	*cp = *ap + *bp;
 	return c;
 }
@@ -608,29 +607,29 @@ DVECS operator + (DVECS const& a, DVECS const& b)
 
 DVECS operator - (DVECS const& a, DVECS const& b)
 {
-	IS_TRUE(a.m_is_init && b.m_is_init, ("not yet initialize."));
+	ASSERT(a.m_is_init && b.m_is_init, ("not yet initialize."));
 	DVECS c;
-	MATRIX<DD> *cp = (MATRIX<DD>*)&c;
-	MATRIX<DD> *ap = (MATRIX<DD>*)&a;
-	MATRIX<DD> *bp = (MATRIX<DD>*)&b;
+	Matrix<DD> *cp = (Matrix<DD>*)&c;
+	Matrix<DD> *ap = (Matrix<DD>*)&a;
+	Matrix<DD> *bp = (Matrix<DD>*)&b;
 	*cp = *ap - *bp;
 	return c;
 }
 
 
-DVECS operator * (RMAT const& a, DVECS const& b)
+DVECS operator * (RMat const& a, DVECS const& b)
 {
-	IS_TRUE(a.is_init() && b.m_is_init, ("not yet initialize."));
-	IS_TRUE(a.get_row_size() > 0 && a.get_col_size() > 0, ("invalid matrix"));
-	IS_TRUE(b.m_row_size > 0 && b.m_col_size > 0, ("invalid matrix"));
-	IS_TRUE(a.get_col_size() == b.m_row_size, ("invalid matrix type of mul"));
+	ASSERT(a.is_init() && b.m_is_init, ("not yet initialize."));
+	ASSERT(a.get_row_size() > 0 && a.get_col_size() > 0, ("invalid matrix"));
+	ASSERT(b.m_row_size > 0 && b.m_col_size > 0, ("invalid matrix"));
+	ASSERT(a.get_col_size() == b.m_row_size, ("invalid matrix type of mul"));
 
 	DVECS c(a.get_row_size(), b.m_col_size);
 	for (UINT i = 0; i < a.get_row_size(); i++) {
 		for (UINT j = 0; j < b.m_col_size; j++) {
 			DD tmp = 0;
 			for (UINT k = 0; k < a.get_col_size(); k++) {
-				IS_TRUE(a.get(i,k).den() == 1, ("only permit integer"));
+				ASSERT(a.get(i,k).den() == 1, ("only permit integer"));
 				tmp = tmp + DD(a.get(i,k).num()) * b.get(k,j);
 				if (tmp.dir == DT_MISC) {
 					//* + * = *
@@ -645,16 +644,16 @@ DVECS operator * (RMAT const& a, DVECS const& b)
 }
 
 
-DVECS operator + (RMAT const& a, DVECS const& b)
+DVECS operator + (RMat const& a, DVECS const& b)
 {
-	IS_TRUE(a.is_init() && b.m_is_init, ("not yet initialize."));
-	IS_TRUE(a.get_row_size() == b.m_row_size &&
+	ASSERT(a.is_init() && b.m_is_init, ("not yet initialize."));
+	ASSERT(a.get_row_size() == b.m_row_size &&
 			a.get_col_size() == b.m_col_size, ("invalid matrix type of mul"));
 
 	DVECS c(a.get_row_size(), a.get_col_size());
 	for (UINT i = 0; i < a.get_row_size(); i++) {
 		for (UINT j = 0; j < a.get_col_size(); j++) {
-			IS_TRUE(a.get(i,j).den() == 1, ("only permit integer"));
+			ASSERT(a.get(i,j).den() == 1, ("only permit integer"));
 			c.set(i, j, DD(a.get(i,j).num()) + b.get(i,j));
 		}
 	}
@@ -662,16 +661,16 @@ DVECS operator + (RMAT const& a, DVECS const& b)
 }
 
 
-DVECS operator - (RMAT const& a, DVECS const& b)
+DVECS operator - (RMat const& a, DVECS const& b)
 {
-	IS_TRUE(a.is_init() && b.m_is_init, ("not yet initialize."));
-	IS_TRUE(a.get_row_size() == b.m_row_size &&
+	ASSERT(a.is_init() && b.m_is_init, ("not yet initialize."));
+	ASSERT(a.get_row_size() == b.m_row_size &&
 			a.get_col_size() == b.m_col_size, ("invalid matrix type of mul"));
 
 	DVECS c(a.get_row_size(), a.get_col_size());
 	for (UINT i = 0; i < a.get_row_size(); i++) {
 		for (UINT j = 0; j < a.get_col_size(); j++) {
-			IS_TRUE(a.get(i,j).den() == 1, ("only permit integer"));
+			ASSERT(a.get(i,j).den() == 1, ("only permit integer"));
 			c.set(i, j, DD(a.get(i,j).num()) - b.get(i,j));
 		}
 	}

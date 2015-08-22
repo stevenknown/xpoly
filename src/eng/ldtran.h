@@ -48,33 +48,33 @@ TOD0: Simplified loop bound
 //Manner Options
 #define OP_DELTA	1 //premultiply T by delta-matrix
 #define	OP_PERM		 2 //premultiply T by classical permuation matrix.
-class LOOP_TRAN {
-	SMEM_POOL * m_pool;
-	RMAT * m_a; //Records loop limits: Ax <= b
+class LoopTran {
+	SMemPool * m_pool;
+	RMat * m_a; //Records loop limits: Ax <= b
 
 	//Records starting column of right hand side of equation or inequlity.
 	INT m_rhs_idx;
-	void * xmalloc(ULONG size)
+	void * xmalloc(size_t size)
 	{
-		void * p = smpool_malloc_h(size,m_pool);
-		IS_TRUE0(p);
+		void * p = smpoolMalloc(size,m_pool);
+		ASSERT0(p);
 		memset(p, 0, size);
 		return p;
 	}
 public:
-	LOOP_TRAN(RMAT * m, INT rhs_idx = -1)
+	LoopTran(RMat * m, INT rhs_idx = -1)
 	{
 		m_pool = NULL;
 		m_rhs_idx = -1;
 		m_a = NULL;
 		init(m, rhs_idx);
 	}
-	~LOOP_TRAN() { destroy(); }
+	~LoopTran() { destroy(); }
 
-	void init(RMAT * m, INT rhs_idx = -1)
+	void init(RMat * m, INT rhs_idx = -1)
 	{
-		IS_TRUE0(m_pool == NULL);
-		m_pool = smpool_create_handle(16, MEM_COMM);
+		ASSERT0(m_pool == NULL);
+		m_pool = smpoolCreate(16, MEM_COMM);
 		if (m != NULL) {
 			set_param(m, rhs_idx);
 		}
@@ -82,61 +82,61 @@ public:
 
 	void destroy()
 	{
-		IS_TRUE0(m_pool);
+		ASSERT0(m_pool);
 		m_a = NULL;
 		m_rhs_idx = -1;
-		smpool_free_handle(m_pool);
+		smpoolDelete(m_pool);
 		m_pool = NULL;
 	}
 
 	//Set index of const column and coeff matrix.
-	void set_param(RMAT * m, INT rhs_idx = -1);
+	void set_param(RMat * m, INT rhs_idx = -1);
 
 	//Applying loop transformation.
-	bool tran_iter_space(IN RMAT & t,
-						OUT RMAT & stride,
-						OUT RMAT & idx_map,
-						OUT LIST<RMAT*> & limits,
-						OUT RMAT & ofst,
-						OUT RMAT & mul,
-						OUT RMAT * trA = NULL); //Perform nonunimodular trans.
+	bool transformIterSpace(IN RMat & t,
+						OUT RMat & stride,
+						OUT RMat & idx_map,
+						OUT List<RMat*> & limits,
+						OUT RMat & ofst,
+						OUT RMat & mul,
+						OUT RMat * trA = NULL); //Perform nonunimodular trans.
 
 	//Functions to generate automatically unimodular/nonsingular
 	//transforming matrix for various loop transformations
-	bool fully_permutable(OUT RMAT & t, IN DVECS const& dvec);
+	bool FullyPermute(OUT RMat & t, IN DVECS const& dvec);
 	bool is_fully_permutable(IN DVECS const& dvec);
 	bool is_legal(IN DVECS const& dvec);
 	bool is_innermost_loop_parallelizable(IN DVECS const& dvec);
-	bool perm_out_zero_rows(OUT RMAT & t, IN RMAT const& m);
-	bool parallel_inner_loops(OUT RMAT & t,
+	bool permuteOutZeroRows(OUT RMat & t, IN RMat const& m);
+	bool parallelInnerLoops(OUT RMat & t,
 							IN DVECS const& dvec, UINT dep_level = 0,
 							UINT option = OP_DELTA | OP_PERM);
-	bool parallel_outer_loops(OUT RMAT & t, IN DVECS const& dvec);
-	bool parallel_most_loops(OUT RMAT & t, IN DVECS const& dvec);
+	bool parallelOuterLoops(OUT RMat & t, IN DVECS const& dvec);
+	bool parallelMostLoops(OUT RMat & t, IN DVECS const& dvec);
 };
 
 
 //Generate C Code
 class GEN_C {
 	bool m_is_init;
-	SMEM_POOL * m_pool;
-	RMAT * m_a; //Records loop limits: Ax <= b
+	SMemPool * m_pool;
+	RMat * m_a; //Records loop limits: Ax <= b
 	INT m_rhs_idx; //Records starting column of right hand side of equation
 				   //or inequlity.
 	CHAR * m_sbuf; //buffer to hold the output string.
 	UINT m_sbufl; //length of m_sbuf.
-	void * xmalloc(ULONG size);
+	void * xmalloc(size_t size);
 	CHAR ** m_cst_sym;
 	CHAR ** m_var_sym;
 	CHAR ** m_org_sym;
 public:
-	GEN_C(RMAT * m, INT rhs_idx = -1);
+	GEN_C(RMat * m, INT rhs_idx = -1);
 	~GEN_C();
-	void init(RMAT * m, INT rhs_idx = -1);
+	void init(RMat * m, INT rhs_idx = -1);
 	void destroy();
 
 	//Set index of const column and coeff matrix.
-	void set_param(RMAT * m, INT rhs_idx = -1);
+	void set_param(RMat * m, INT rhs_idx = -1);
 	void set_sym(CHAR ** tgtvar_sym = NULL,
 				CHAR ** orgvar_sym = NULL, CHAR ** cst_sym = NULL);
 	/*
@@ -147,33 +147,33 @@ public:
 	CHAR * get_newvar_sym(OUT CHAR * sbuf, INT varid);
 	CHAR * get_cst_sym(OUT CHAR * sbuf, INT varid);
 	void gen_ppl(OUT CHAR sbuf[], INT num);//placeholder
-	void genidxm(OUT CHAR sbuf[], IN RMAT & idx_map);
-	bool genofst(OUT CHAR sbuf[], IN RMAT & ofst);
-	void genub(OUT CHAR sbuf[], IN RMAT * limits, INT ub, INT ivar);
-	void genlb(OUT CHAR sbuf[], IN RMAT * limits, INT lb, INT ivar);
-	void genmin(OUT CHAR sbuf[], IN RMAT * limits, INT ub1, INT ub2, INT ivar);
-	void genmax(OUT CHAR sbuf[], IN RMAT * limits, INT lb1, INT lb2, INT ivar);
-	void genmaxs(OUT CHAR sbuf[], IN RMAT * limits,
+	void genidxm(OUT CHAR sbuf[], IN RMat & idx_map);
+	bool genofst(OUT CHAR sbuf[], IN RMat & ofst);
+	void genub(OUT CHAR sbuf[], IN RMat * limits, INT ub, INT ivar);
+	void genlb(OUT CHAR sbuf[], IN RMat * limits, INT lb, INT ivar);
+	void genmin(OUT CHAR sbuf[], IN RMat * limits, INT ub1, INT ub2, INT ivar);
+	void genmax(OUT CHAR sbuf[], IN RMat * limits, INT lb1, INT lb2, INT ivar);
+	void genmaxs(OUT CHAR sbuf[], IN RMat * limits,
 					INT lbnum,	INT * lb, INT ivar);
-	void genmins(OUT CHAR sbuf[], IN RMAT * limits,
+	void genmins(OUT CHAR sbuf[], IN RMat * limits,
 					INT ubnum, INT * ub, INT ivar);
-	void genlinexp(OUT CHAR sbuf[], IN RMAT & coeff_vec, INT ivar,
+	void genlinexp(OUT CHAR sbuf[], IN RMat & coeff_vec, INT ivar,
 					INT comden, bool is_lb, UINT sym_start_cl, UINT num_sc);
 	void gen_loop_start(OUT CHAR sbuf[], INT stride,
-					IN RMAT * limits, IN RMAT & ofst, INT mul, INT ivar,
+					IN RMat * limits, IN RMat & ofst, INT mul, INT ivar,
 					INT * lb, INT lbnum);
 	void gen_loop_end(OUT CHAR sbuf[], INT stride,
-					IN RMAT * limits, IN RMAT & ofst, INT mul, INT ivar,
+					IN RMat * limits, IN RMat & ofst, INT mul, INT ivar,
 					INT * ub, INT ubnum);
 	void gen_loop_step(OUT CHAR sbuf[], INT stride,
-					IN RMAT * limits, IN RMAT & ofst, INT mul, INT ivar);
-	void genlimit(OUT CHAR sbuf[], INT stride, IN RMAT * limits,
-					IN RMAT & ofst, INT mul, INT ivar);
-	void genlimits(IN LIST<RMAT*> & limits,
-					IN RMAT * pstride = NULL,
-					IN RMAT * pidx_map = NULL,
-					IN RMAT * pofst = NULL,
-					IN RMAT * pmul = NULL,
+					IN RMat * limits, IN RMat & ofst, INT mul, INT ivar);
+	void genlimit(OUT CHAR sbuf[], INT stride, IN RMat * limits,
+					IN RMat & ofst, INT mul, INT ivar);
+	void genlimits(IN List<RMat*> & limits,
+					IN RMat * pstride = NULL,
+					IN RMat * pidx_map = NULL,
+					IN RMat * pofst = NULL,
+					IN RMat * pmul = NULL,
 					IN CHAR * name = NULL,
 					IN bool is_del = false);
 };

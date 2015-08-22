@@ -22,6 +22,10 @@ CFLAGS = -D_LINUX_ -Wno-write-strings -Wsign-promo -Wformat -Wswitch \
         -Wstrict-aliasing=3 -finline-limit=10000000 -Wswitch -O2 #-D_DEBUG_ #-Wall
         #-Werror=overloaded-virtual \
 
+xpoly_example.exe: com_objs eng_objs ex_objs
+	gcc $(COM_OBJS) $(ENG_OBJS) $(EX_OBJS) $(CFLAGS) -o $@ -lstdc++ -lm
+	@echo "success!!"
+
 INC=-I com -I eng
 %.o:%.cpp
 	@echo "build $<"
@@ -30,10 +34,6 @@ INC=-I com -I eng
 com_objs: $(COM_OBJS)
 eng_objs: $(ENG_OBJS)
 ex_objs: $(EX_OBJS) 
-
-xpoly_example.exe: com_objs eng_objs ex_objs
-	gcc $(COM_OBJS) $(ENG_OBJS) $(EX_OBJS) $(CFLAGS) -o $@ -lstdc++ -lm
-	@echo "success!!"
 
 clean:
 	@find -name "*.o" | xargs rm -f

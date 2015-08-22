@@ -28,77 +28,79 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __XMAT_H__
 #define __XMAT_H__
 
-class INTMAT;
-class RMAT;
-class FLMAT;
+namespace xcom {
+
+class INTMat;
+class RMat;
+class FloatMat;
 
 ///Rational
-RMAT operator * (RMAT const& a, RMAT const& b);
-RMAT operator + (RMAT const& a, RMAT const& b);
-RMAT operator - (RMAT const& a, RMAT const& b);
+RMat operator * (RMat const& a, RMat const& b);
+RMat operator + (RMat const& a, RMat const& b);
+RMat operator - (RMat const& a, RMat const& b);
 
-class RMAT : public MATRIX<RATIONAL> {
-	friend RMAT operator * (RMAT const& a, RMAT const& b);
-	friend RMAT operator + (RMAT const& a, RMAT const& b);
-	friend RMAT operator - (RMAT const& a, RMAT const& b);
-	friend class INTMAT;
+class RMat : public Matrix<Rational> {
+	friend RMat operator * (RMat const& a, RMat const& b);
+	friend RMat operator + (RMat const& a, RMat const& b);
+	friend RMat operator - (RMat const& a, RMat const& b);
+	friend class INTMat;
 	bool m_is_init;
 
 	void _init_hook();
 public:
-	RMAT();
-	RMAT(FRAC_TYPE v); //used by template call of T(0) in SVECTOR<MAT>
-	RMAT(RMAT const& m);
-	RMAT(INTMAT const& m);
-	RMAT(UINT row, UINT col);
-	~RMAT();
+	RMat();
+	RMat(FRAC_TYPE v); //used by template call of T(0) in Vector<Mat>
+	RMat(RMat const& m);
+	RMat(INTMat const& m);
+	RMat(UINT row, UINT col);
+	~RMat();
 	void init();
 	void init(UINT row, UINT col);
-	void init(RMAT const& m);
-	void init(INTMAT const& m);
+	void init(RMat const& m);
+	void init(INTMat const& m);
 	void destroy();
 	bool is_init() const { return m_is_init; }
 	bool is_imat(UINT * row = NULL, UINT * col = NULL);
 	void sete(UINT num,...);
 	void setr(UINT row, UINT col, FRAC_TYPE numer, FRAC_TYPE denom = 1);
-	void setr(UINT row, UINT col, RATIONAL rat);
+	void setr(UINT row, UINT col, Rational rat);
 	void getr(UINT row, UINT col, FRAC_TYPE * numer, FRAC_TYPE * denom);
-	RATIONAL getr(UINT row, UINT col);
-	bool inv(RMAT & e);
-	void ds(IN RMAT const& c);
-	void copy(RMAT const& r);
-	void copy(INTMAT const& r);
+	Rational getr(UINT row, UINT col);
+	bool inv(RMat & e);
+	void ds(IN RMat const& c);
+	void copy(RMat const& r);
+	void copy(INTMat const& r);
 	UINT comden(UINT row, UINT col); //Common denominator
-	void substit(IN RMAT const& exp,
+	void substit(IN RMat const& exp,
 				IN UINT v,
 				bool is_eq = true,
 				INT rhs_idx = -1);
-	void intliz(INT row = -1); //Converting rational element to integer.
-	RMAT & operator = (RMAT const& m);
-	RATIONAL reduce(UINT row, UINT col);
+	void intlize(INT row = -1); //Converting rational element to integer.
+	RMat & operator = (RMat const& m);
+	Rational reduce(UINT row, UINT col);
 	void reduce();
 };
 
 
 ///Integer
-INTMAT operator * (INTMAT const& a, INTMAT const& b);
-INTMAT operator + (INTMAT const& a, INTMAT const& b);
-INTMAT operator - (INTMAT const& a, INTMAT const& b);
+INTMat operator * (INTMat const& a, INTMat const& b);
+INTMat operator + (INTMat const& a, INTMat const& b);
+INTMat operator - (INTMat const& a, INTMat const& b);
 
-class INTMAT : public MATRIX<INT> {
-	friend class RMAT;
+class INTMat : public Matrix<INT> {
+	friend class RMat;
 	bool m_is_init;
-	void _verify_hnf(INTMAT &h);
-	friend INTMAT operator * (INTMAT const& a, INTMAT const& b);
-	friend INTMAT operator + (INTMAT const& a, INTMAT const& b);
-	friend INTMAT operator - (INTMAT const& a, INTMAT const& b);
+	void _verify_hnf(INTMat &h);
+	friend INTMat operator * (INTMat const& a, INTMat const& b);
+	friend INTMat operator + (INTMat const& a, INTMat const& b);
+	friend INTMat operator - (INTMat const& a, INTMat const& b);
 public:
-	INTMAT();
+	INTMat();
 
-	//Used by template call of T(0) in SVECTOR<MAT>.
-	INTMAT(INT v);
-	INTMAT(UINT row, UINT col);
-	~INTMAT();
+	//Used by template call of T(0) in Vector<Mat>.
+	INTMat(INT v);
+	INTMat(UINT row, UINT col);
+	~INTMat();
 	void init();
 	void destroy();
 	bool is_init() const { return m_is_init; }
@@ -109,22 +111,22 @@ public:
 	//Invering of Integer Matrix will be transformed
 	//to Rational Matrix, and one exception will be thrown
 	//if there are some element's denomiator is not '1'.
-	bool inv(OUT INTMAT &e);
+	bool inv(OUT INTMat &e);
 	INT det();
 
 	//Generate unimodular matrix to elimnate element.
-	void gen_elim_mat(IN UINT row, IN UINT col, OUT INTMAT &elim);
+	void gen_elim_mat(IN UINT row, IN UINT col, OUT INTMat &elim);
 
 	//Hermite Normal Form decomposition.
-	void hnf(OUT INTMAT &h, OUT INTMAT &u);
+	void hnf(OUT INTMat &h, OUT INTMat &u);
 
 	//Reduce matrix by GCD operation.
 	void gcd();
 
 	//Find convex hull of a set of points.
-	void cvexhull(OUT INTMAT &hull);
-	INTMAT & operator = (INTMAT const& m);
-	void copy(RMAT const& r);
+	void cvexhull(OUT INTMat &hull);
+	INTMat & operator = (INTMat const& m);
+	void copy(RMat const& r);
 	void dumpf(CHAR const* name = NULL, bool is_del = false) const;
 	void dumps() const;
 };
@@ -132,39 +134,40 @@ public:
 
 ///Float
 #define DEFAULT_SD			6
-FLMAT operator * (FLMAT const& a, FLMAT const& b);
-FLMAT operator - (FLMAT const& a, FLMAT const& b);
-class FLMAT : public MATRIX<FLTY> {
+#define USE_FAST_BUT_LOW_PRECISION_SQRT
+FloatMat operator * (FloatMat const& a, FloatMat const& b);
+FloatMat operator - (FloatMat const& a, FloatMat const& b);
+class FloatMat : public Matrix<Float> {
 	bool m_is_init;
 	CHAR * m_sd_str; //Descripte significant digit string.
 public:
-	FLMAT();
-	FLMAT(INT v); //used by template call of T(0) in SVECTOR<MAT>
-	FLMAT(UINT row, UINT col);
-	~FLMAT();
+	FloatMat();
+	FloatMat(INT v); //used by template call of T(0) in Vector<Mat>
+	FloatMat(UINT row, UINT col);
+	~FloatMat();
 	void init();
 	void destroy();
 	bool is_init() const { return m_is_init; }
 	void sete(UINT num,...);
 	void setie(UINT num, ...);
-	FLMAT& operator = (FLMAT const& m);
+	FloatMat& operator = (FloatMat const& m);
 	void set_sd(UINT sd); //Redefine the significant digit.
-	void substit(IN FLMAT const& exp, IN UINT v, bool is_eq, INT rhs_idx);
+	void substit(IN FloatMat const& exp, IN UINT v, bool is_eq, INT rhs_idx);
 	bool is_imat(UINT * row, UINT * col);
 
 	//Get the significant digit description string.
 	CHAR const* get_sd() const;
-	FLTY reduce(UINT row, UINT col) { return get(row, col); }
+	Float reduce(UINT row, UINT col) { return get(row, col); }
 	void reduce() {}
 };
 
 
 ///Boolean
-class BMAT : public MATRIX<bool> {
+class BMAT : public Matrix<bool> {
 	bool m_is_init;
 public:
 	BMAT();
-	BMAT(INT v); //used by template call of T(0) in SVECTOR<MAT>
+	BMAT(INT v); //used by template call of T(0) in Vector<Mat>
 	BMAT(UINT row, UINT col);
 	~BMAT();
 	void init();
@@ -175,4 +178,6 @@ public:
 	void sete(UINT num, ...);
 	BMAT & operator = (BMAT const& m);
 };
+
+} //namespace xcom
 #endif

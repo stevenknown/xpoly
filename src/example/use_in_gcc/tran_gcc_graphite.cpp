@@ -69,11 +69,14 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "btcode/bs.h"
 #include "btcode/sgraph.h"
 #include "btcode/xmat.h"
-#include "btcode/depvecs.h"
 #include "btcode/linsys.h"
+#include "btcode/lpsol.h"
+
+using namespace xcom;
+
+#include "btcode/depvecs.h"
 #include "btcode/poly.h"
 #include "btcode/ldtran.h"
-#include "btcode/lpsol.h"
 
 #include "tran_gcc_graphite.h"
 

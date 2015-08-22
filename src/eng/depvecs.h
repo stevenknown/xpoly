@@ -55,13 +55,13 @@ public:
 		dir = ddir;
 		switch (dir) {
 		case DT_DIS:
-			IS_TRUE(0, ("Distant-dependence must take a constant value"));
+			ASSERT(0, ("Distant-dependence must take a constant value"));
 			break;
 		case DT_POS:
 		case DT_NEG:
 		case DT_MISC:
 			dis = 0; break;
-		default: IS_TRUE(0,("unknown operand"));
+		default: ASSERT(0,("unknown operand"));
 		}
 	}
 	DD(DT ddir, INT ddis)
@@ -70,9 +70,9 @@ public:
 		switch (dir) {
 		case DT_DIS:
 		case DT_MISC: break;
-		case DT_POS: IS_TRUE(dis >= 0, ("illegal bound")); break;
-		case DT_NEG: IS_TRUE(dis <= 0, ("illegal bound")); break;
-		default: IS_TRUE(0,("unknown operand"));
+		case DT_POS: ASSERT(dis >= 0, ("illegal bound")); break;
+		case DT_NEG: ASSERT(dis <= 0, ("illegal bound")); break;
+		default: ASSERT(0,("unknown operand"));
 		}
 	}
 	DD(INT a){dir = DT_DIS; dis = a;} //support declaration as 'DD a=0'
@@ -81,13 +81,13 @@ public:
 
 //Dependence Matix, each row characterize one dependence vector.
 //Dependence vector descripting distance/direction dependence.
-class DVECS : public MATRIX<DD> {
+class DVECS : public Matrix<DD> {
 	friend DVECS operator * (DVECS const& a, DVECS const& b);
 	friend DVECS operator + (DVECS const& a, DVECS const& b);
 	friend DVECS operator - (DVECS const& a, DVECS const& b);
-	friend DVECS operator * (RMAT const& a, DVECS const& b);
-	friend DVECS operator + (RMAT const& a, DVECS const& b);
-	friend DVECS operator - (RMAT const& a, DVECS const& b);
+	friend DVECS operator * (RMat const& a, DVECS const& b);
+	friend DVECS operator + (RMat const& a, DVECS const& b);
+	friend DVECS operator - (RMat const& a, DVECS const& b);
 	bool m_is_init;
 public:
 	DVECS();
@@ -97,11 +97,11 @@ public:
 	void init();
 	void destroy();
 	void sete(UINT num, ...);
-	void setv(UINT num, SVECTOR<DD> const& dd);
-	bool cvt_to(OUT RMAT & r); //Converting dvecs to rmat.
+	void setv(UINT num, Vector<DD> const& dd);
+	bool cvt_to(OUT RMat & r); //Converting dvecs to rmat.
 	DVECS & operator = (DVECS const& m);
-	DVECS & operator = (RMAT const& m);
-	DVECS & operator = (INTMAT const& m);
+	DVECS & operator = (RMat const& m);
+	DVECS & operator = (INTMat const& m);
 };
 
 #define DD_TRUE		1

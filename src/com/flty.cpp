@@ -1,6 +1,9 @@
 /*@
-Copyright (c) 2013-2014, Su Zhenyu steven.known@gmail.com
-All rights reserved.
+XOC Release License
+
+Copyright (c) 2013-2014, Alibaba Group, All rights reserved.
+
+    compiler@aliexpress.com
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -14,23 +17,28 @@ modification, are permitted provided that the following conditions are met:
       may be used to endorse or promote products derived from this software
       without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
-USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+author: Su Zhenyu
 @*/
 #include "ltype.h"
 #include "comf.h"
 #include "flty.h"
 #include "math.h"
 
-bool operator == (FLTY const& a, FLTY const& b)
+namespace xcom {
+
+bool operator == (Float const& a, Float const& b)
 {
 	PRECISION_TYPE av = a.m_f;
 	PRECISION_TYPE bv = b.m_f;
@@ -50,7 +58,7 @@ bool operator == (FLTY const& a, FLTY const& b)
 }
 
 
-bool operator < (FLTY const& a, FLTY const& b)
+bool operator < (Float const& a, Float const& b)
 {
 	if (a.m_f < b.m_f) {
 		return true;
@@ -59,7 +67,7 @@ bool operator < (FLTY const& a, FLTY const& b)
 }
 
 
-bool operator <= (FLTY const& a, FLTY const& b)
+bool operator <= (Float const& a, Float const& b)
 {
 	if (a.m_f < b.m_f || a == b) {
 		return true;
@@ -68,7 +76,7 @@ bool operator <= (FLTY const& a, FLTY const& b)
 }
 
 
-bool operator > (FLTY const& a, FLTY const& b)
+bool operator > (Float const& a, Float const& b)
 {
 	if (a.m_f > b.m_f) {
 		return true;
@@ -77,7 +85,7 @@ bool operator > (FLTY const& a, FLTY const& b)
 }
 
 
-bool operator >= (FLTY const& a, FLTY const& b)
+bool operator >= (Float const& a, Float const& b)
 {
 	if (a.m_f > b.m_f || a == b) {
 		return true;
@@ -86,37 +94,37 @@ bool operator >= (FLTY const& a, FLTY const& b)
 }
 
 
-FLTY operator * (FLTY const& a, FLTY const& b)
+Float operator * (Float const& a, Float const& b)
 {
-	//return FLTY(integralize(integralize(a.m_f) * integralize(b.m_f)));
-	return FLTY(a.m_f * b.m_f);
+	//return Float(integralize(integralize(a.m_f) * integralize(b.m_f)));
+	return Float(a.m_f * b.m_f);
 }
 
 
-FLTY operator / (FLTY const& a, FLTY const& b)
+Float operator / (Float const& a, Float const& b)
 {
-	//return FLTY(integralize(integralize(a.m_f) / integralize(b.m_f)));
-	return FLTY(a.m_f / b.m_f);
+	//return Float(integralize(integralize(a.m_f) / integralize(b.m_f)));
+	return Float(a.m_f / b.m_f);
 }
 
 
-FLTY operator + (FLTY const& a, FLTY const& b)
+Float operator + (Float const& a, Float const& b)
 {
-	//return FLTY(integralize(integralize(a.m_f) + integralize(b.m_f)));
-	return FLTY(a.m_f + b.m_f);
+	//return Float(integralize(integralize(a.m_f) + integralize(b.m_f)));
+	return Float(a.m_f + b.m_f);
 }
 
 
 //Subtration operation
-FLTY operator - (FLTY const& a, FLTY const& b)
+Float operator - (Float const& a, Float const& b)
 {
-	//return FLTY(integralize(integralize(a.m_f) - integralize(b.m_f)));
-	return FLTY(a.m_f - b.m_f);
+	//return Float(integralize(integralize(a.m_f) - integralize(b.m_f)));
+	return Float(a.m_f - b.m_f);
 }
 
 
 //Minus operation
-FLTY operator - (FLTY a)
+Float operator - (Float a)
 {
 	a.m_f = -(a.m_f);
 	return a;
@@ -124,14 +132,14 @@ FLTY operator - (FLTY a)
 
 
 //Zerolization.
-FLTY zerolinz(FLTY const& a)
+Float zerolinz(Float const& a)
 {
 	PRECISION_TYPE v = a.m_f;
 	if (v < 0) {
 		v = -v;
 	}
 	if (v <= INFINITESIMAL) {
-		return FLTY(0);
+		return Float(0);
 	}
 	return a;
 }
@@ -164,14 +172,14 @@ PRECISION_TYPE integralize(PRECISION_TYPE const& a)
 }
 
 
-CHAR * FLTY::format(CHAR * buf)
+CHAR * Float::format(CHAR * buf)
 {
 	sprintf(buf, "%f", m_f);
 	return buf;
 }
 
 
-bool FLTY::is_int()
+bool Float::is_int()
 {
 	PRECISION_TYPE av = m_f;
 	if (av < 0) {
@@ -192,3 +200,4 @@ bool FLTY::is_int()
 	return false;
 }
 
+} //namespace xcom

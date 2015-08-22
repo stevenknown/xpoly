@@ -25,6 +25,9 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 @*/
+
+#include <math.h>
+
 #include "ltype.h"
 #include "comf.h"
 #include "smempool.h"
@@ -33,13 +36,16 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "sstl.h"
 #include "matt.h"
 #include "xmat.h"
-#include <math.h>
 #include "bs.h"
+#include "sbs.h"
 #include "sgraph.h"
-#include "depvecs.h"
-#include "ldtran.h"
 #include "lpsol.h"
 #include "linsys.h"
+
+using namespace xcom;
+
+#include "depvecs.h"
+#include "ldtran.h"
 #include "ldtran.h"
 
 //This function demostrate how to use SIX to compute maxmium solution.
@@ -53,27 +59,27 @@ void solve_linear_program2()
 
 		x1,x2 >= 0
 	*/
-	FLTY v;
+	Float v;
 
 	//Init linear inequality.
-	FLMAT leq(2,3);
+	FloatMat leq(2,3);
 	leq.sete(6,
 				2.0, -1.0, 		2.0,
 				1.0, -5.0, 		-4.0);
 
 	//Init target function.
-	FLMAT tgtf(1,3);
+	FloatMat tgtf(1,3);
 	tgtf.sete(3,
 				2.0, -1.0, 0.0);
 
 	//Init variable constrain.
-	FLMAT vc(2,3);
+	FloatMat vc(2,3);
 	vc.sete(6,
 				-1.0,	0.0,	0.0,
 				0.0,	-1.0, 	0.0);
 
-	FLMAT res, eq;
-	SIX<FLMAT,FLTY> six;
+	FloatMat res, eq;
+	SIX<FloatMat,Float> six;
 
 	//Dump to check.
 	tgtf.dumpf();
@@ -119,12 +125,12 @@ void solve_linear_program()
 	target function:
 		min=v0+v1+v2+v3+v4
 	*/
-	RATIONAL v; //maximum or minimum result value.
-	RMAT leq(8,6); //linear inequality.
-	RMAT eq; //linear equality.
-	RMAT tgtf(1,6); //target function.
-	RMAT vc(5,6); //variable constrain.
-	RMAT res; //result solution.
+	Rational v; //maximum or minimum result value.
+	RMat leq(8,6); //linear inequality.
+	RMat eq; //linear equality.
+	RMat tgtf(1,6); //target function.
+	RMat vc(5,6); //variable constrain.
+	RMat res; //result solution.
 
 	tgtf.sete(6, //indicate tgtf has 6 elements.
 			  1, 1, 1, 1, 1, 0);  //
@@ -146,7 +152,7 @@ void solve_linear_program()
 			0,0,0,-1,0,			0,
 			0,0,0,0,-1,			0);
 
-	SIX<RMAT, RATIONAL> six;
+	SIX<RMat, Rational> six;
 
 	//Dump to check.
 	tgtf.dumps();
