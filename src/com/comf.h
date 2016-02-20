@@ -37,11 +37,11 @@ author: Su Zhenyu
 namespace xcom {
 
 
-/* Singler timer, show const string before timer start.
-e.g:
-    START_TIMER("My Pass");
-    Run mypass();
-    END_TIMER(); */
+//Singler timer, show const string before timer start.
+//e.g:
+//    START_TIMER("My Pass");
+//    Run mypass();
+//    END_TIMER();
 #define START_TIMER(s)              \
     LONG _start_time_count_ = 0;    \
     if (g_show_comp_time) {         \
@@ -55,11 +55,11 @@ e.g:
     }
 
 
-/* Single timer, show const string after timer finish.
-e.g:
-    START_TIMER_AFTER();
-    Run mypass();
-    END_TIMER_AFTER("My Pass"); */
+//Single timer, show const string after timer finish.
+//e.g:
+//    START_TIMER_AFTER();
+//    Run mypass();
+//    END_TIMER_AFTER("My Pass");
 #define START_TIMER_AFTER()         \
     LONG _start_time_count_ = 0;    \
     if (g_show_comp_time) {         \
@@ -73,11 +73,11 @@ e.g:
     }
 
 
-/* Single timer, show format string after timer finish.
-e.g:
-    START_TIMER();
-    Run mypass();
-    END_TIMER_FMT(("My Pass Name%s", get_pass_name())); */
+//Single timer, show format string after timer finish.
+//e.g:
+//    START_TIMER();
+//    Run mypass();
+//    END_TIMER_FMT(("My Pass Name%s", get_pass_name()));
 #define START_TIMER_FMT()           \
     LONG _start_time_count_ = 0;    \
     if (g_show_comp_time) {         \
@@ -92,12 +92,12 @@ e.g:
     }
 
 
-/* Define multiple const string timers,
-and show const string before timer start.
-e.g:
-    START_TIMERS("My Pass", local_timer);
-    Run mypass();
-    END_TIMERS(local_timer); */
+//Define multiple const string timers,
+//and show const string before timer start.
+//e.g:
+//    START_TIMERS("My Pass", local_timer);
+//    Run mypass();
+//    END_TIMERS(local_timer);
 #define START_TIMERS(s, _timer_timer_) \
     LONG _timer_timer_ = 0;            \
     if (g_show_comp_time) {            \
@@ -131,23 +131,58 @@ template <typename T> void dummy_use(T const&) {}
 
 template <class T, UINT GrowSize> class Vector;
 
+//Arrangement
+//P(n,m)=n*(n-1)*...*(n-m+1)=n!/(n-m)!
 UINT arra(UINT n, UINT m); //Arrangement
+
+//Convert floating point string into binary words.
 void af2i(IN CHAR * f, OUT BYTE * buf, INT buflen, bool is_double);
 
+//Return the position in array if find v.
+//array: sorted in incremental order.
+//n: elements size of array.
+//v: search v in array.
 bool binsearch(INT array[], UINT n, INT v, IN OUT UINT * ppos);
 
+//Combination
+//C(n,m)=(n*(n-1)*...*(n-m+1))/m! = n!/m!(n-m)!
+//Simplify:C(n,m)=(n*(n-1)*(m+1))/(n-m)!
 UINT combin(UINT n, UINT m); //Combination
+
+//Ceil rounding alignment.
+//e.g  v=17 , align=4 , the result is 20.
 LONGLONG ceil_align(LONGLONG v, LONGLONG align);
 
+//Caculate the number of bits which longer enough to represent given constant.
+UINT computeConstBitLen(LONGLONG v);
+
+//Dumpf() for Vector<TY>.
 void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del);
+
+//Dumps() for Vector<TY>.
 void dumps_svec(void * vec, UINT ty);
 
+//Extended Euclid Method.
+//    ax + by = ay' + b(x' -floor(a/b)*y') = gcd(a,b) = gcd(b, a%b)
 INT exgcd(INT a, INT b, OUT INT & x, OUT INT & y);
 
+//Factorial of n, namely, requiring n!.
 UINT fact(UINT n);
+
+//Searchs for sub-string.
 INT findstr(CHAR * src, CHAR * s);
 
+//Extract the right most sub-string which separated by 'separator' from string.
+//e.g: Given string is a\b\c, separator is '\', return c;
+CHAR const* extractRightMostSubString(CHAR const* string, CHAR separator);
+
+//Extract the left most sub-string which separated by 'separator' from string.
+//e.g: Given string is a\b\c, separator is '\', return a;
+void extractLeftMostSubString(CHAR * tgt, CHAR const* string, CHAR separator);
+//Great common divisor for number of values.
 INT gcdm(UINT num, ...);
+
+//Great common divisor for values stored in vector.
 INT gcdm(UINT num, Vector<INT, 8> const& a);
 
 //Compute the nearest power of 2 that not less than v.
@@ -179,15 +214,33 @@ inline ULONGLONG getNearestPowerOf2(ULONGLONG v)
 
 //Compute the number of 1.
 UINT getLookupPopCount(ULONGLONG v);
+
+//Compute the number of 1.
 UINT getSparsePopCount(ULONGLONG v);
+
+//Compute the power of 2, return the result.
+//Note v must be power of 2.
 UINT getPowerOf2(ULONGLONG v);
-UINT get_const_bit_len(LONGLONG v);
-CHAR * getfilesuffix(CHAR * n, OUT CHAR * buf);
-CHAR * getfilepath(CHAR * n, OUT CHAR * buf, UINT bufl);
-CHAR * getfilename(CHAR * n, OUT CHAR * buf, UINT bufl);
+
+//Extract file suffix.
+//e.g: Given a.foo, return foo.
+CHAR * getfilesuffix(CHAR const* n, OUT CHAR * buf, UINT bufl);
+
+//Extract file path.
+//e.g: Given /xx/yy/zz.file, return /xx/yy
+CHAR * getfilepath(CHAR const* n, OUT CHAR * buf, UINT bufl);
+
+//Extract file name.
+//e.g: Given /xx/yy/zz.foo, return zz.
+CHAR * getfilename(CHAR const* n, OUT CHAR * buf, UINT bufl);
+
+//Get current micro-second.
 ULONGLONG getusec();
 LONG getclockstart();
 float getclockend(LONG start);
+
+//Get the index of the first '1' start at most right side.
+//e.g: given m=0x8, the first '1' index is 3.
 INT getFirstOneAtRightSide(INT m);
 
 inline UINT hash32bit(UINT n)
@@ -201,36 +254,74 @@ inline UINT hash32bit(UINT n)
     return n;
 }
 
+//Judge if 'f' is integer conform to IEEE754 spec.
 bool is_integer(float f);
+
+//Judge if 'd' is integer conform to IEEE754 spec.
 bool is_integerd(double d);
-bool isPowerOf5(double f);
 
 //inline is necessary to avoid multiple define.
-inline bool isPowerOf2(ULONGLONG x)
-{ return (x != 0 && (x & (x-1)) == 0); }
+inline bool isPowerOf2(ULONGLONG x) { return (x != 0 && (x & (x-1)) == 0); }
+bool isPowerOf5(double f);
 
+//Prime Factorization.
+//e.g: 435234 = 251 * 17 * 17 * 3 * 2.
 void prim(INT m, OUT INT * buf);
+
+//Reverse a DWORD by lexicalgraph.
+//e.g:if 'd' is 0x12345678, return 0x78563412.
 LONG revlong(LONG d);
+
+//Reverse the string.
 UCHAR * reverseString(UCHAR * v);
 CHAR * upper(CHAR * n);
 CHAR * lower(CHAR * n);
 INT sgcd(INT x, INT y);
 INT slcm(INT x, INT y);
+
+//Shift a string to right side or left side.
+//ofst: great than zero means shifting string to right side,
+//   and the displacement is abs(ofst); negative
+//   means shifting string to left.
 void strshift(CHAR * src, INT ofst);
 
 CHAR * xstrcat(CHAR * buf, UINT bufl, CHAR const* info, ...);
 UINT xstrlen(CHAR const* p);
+
+//Compare the first 'n' char of two string.
+//Return true if equal.
 bool xstrcmp(CHAR const* p1, CHAR const* p2, INT n);
+
+//Format string and record in buf.
+//'buf': output buffer record string.
+//'stack_start': point to the first args.
 CHAR * xsprintf(IN OUT CHAR * buf,
                 UINT buflen,
                 IN CHAR const* format,
                 ...);
+
+//Convert a string into long integer.
+//e.g: cl = '1','2','3','4','5'
+//return 12345.
+//'is_oct': if true, nptr is octal digits.
 LONG xatol(CHAR const* nptr, bool is_oct);
+
+//Convert char value into binary.
+//e.g: char p = ' '; p is blank.
 INT xctoi(CHAR const* cl);
+
+//Convert long to string.
 UCHAR * xltoa(LONG v, OUT UCHAR * buf);
 INT xceiling(INT a, INT b);
 INT xfloor(INT a, INT b);
 INT xstrstr(CHAR const* src, CHAR const* par, INT i);
+
+//Split string by given separetor, and return the number of substring.
+//str: input string.
+//ret: record each substring which separated by sep.
+//sep: separator.
+//Note caller is responsible for the free of each string memory in ret.
+UINT xsplit(CHAR const* str, OUT Vector<CHAR*, 8> & ret, CHAR const* sep);
 void xstrcpy(CHAR * tgt, CHAR const* src, UINT size);
 inline bool xisspace(CHAR c) { return c == ' ' || c == '\t'; }
 inline bool xisdigit(CHAR c) { return c >= '0' && c <= '9'; }

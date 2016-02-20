@@ -67,12 +67,12 @@ public:
     void getr(UINT row, UINT col, FRAC_TYPE * numer, FRAC_TYPE * denom);
     Rational getr(UINT row, UINT col);
     bool inv(RMat & e);
-    void ds(IN RMat const& c);
+    void ds(RMat const& c);
     void copy(RMat const& r);
     void copy(INTMat const& r);
     UINT comden(UINT row, UINT col); //Common denominator
-    void substit(IN RMat const& exp,
-                IN UINT v,
+    void substit(RMat const& exp,
+                UINT v,
                 bool is_eq = true,
                 INT rhs_idx = -1);
     void intlize(INT row = -1); //Converting rational element to integer.
@@ -115,7 +115,7 @@ public:
     INT det();
 
     //Generate unimodular matrix to elimnate element.
-    void gen_elim_mat(IN UINT row, IN UINT col, OUT INTMat &elim);
+    void gen_elim_mat(UINT row, UINT col, OUT INTMat &elim);
 
     //Hermite Normal Form decomposition.
     void hnf(OUT INTMat &h, OUT INTMat &u);
@@ -152,7 +152,7 @@ public:
     void setie(UINT num, ...);
     FloatMat& operator = (FloatMat const& m);
     void set_sd(UINT sd); //Redefine the significant digit.
-    void substit(IN FloatMat const& exp, IN UINT v, bool is_eq, INT rhs_idx);
+    void substit(IN FloatMat const& exp, UINT v, bool is_eq, INT rhs_idx);
     bool is_imat(UINT * row, UINT * col);
 
     //Get the significant digit description string.
@@ -163,20 +163,20 @@ public:
 
 
 ///Boolean
-class BMAT : public Matrix<bool> {
+class BMat : public Matrix<bool> {
     bool m_is_init;
 public:
-    BMAT();
-    BMAT(INT v); //used by template call of T(0) in Vector<Mat>
-    BMAT(UINT row, UINT col);
-    ~BMAT();
+    BMat();
+    BMat(INT v); //used by template call of T(0) in Vector<Mat>
+    BMat(UINT row, UINT col);
+    ~BMat();
     void init();
     void destroy();
     bool is_init() const { return m_is_init; }
 
     //Set entry value one by one, 'num' indicate entry number.
     void sete(UINT num, ...);
-    BMAT & operator = (BMAT const& m);
+    BMat & operator = (BMat const& m);
 };
 
 } //namespace xcom

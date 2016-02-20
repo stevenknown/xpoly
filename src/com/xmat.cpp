@@ -570,7 +570,7 @@ UINT RMat::comden(UINT row, UINT col)
     and if 'is_eq' is true, matrix repesented an equation,
         x1 + 7x2 - 2x3  = -10
 */
-void RMat::substit(IN RMat const& exp, IN UINT v, bool is_eq, INT rhs_idx)
+void RMat::substit(RMat const& exp, UINT v, bool is_eq, INT rhs_idx)
 {
     ASSERT(m_is_init && exp.m_is_init,
             ("not yet initialize."));
@@ -687,7 +687,7 @@ or equals 1.
 e.g: L <= x <= U , to ( L + 1) <= U.
 
 'c': constant vector. */
-void RMat::ds(IN RMat const&)
+void RMat::ds(RMat const&)
 {
     ASSERT(m_is_init, ("not yet initialize."));
 }
@@ -819,9 +819,9 @@ void INTMat::copy(RMat const& r)
 }
 
 
-/* Invering of Integer Matrix will be transformed to Rational
-Matrix, and one exception will be thrown if there are some
-element's denomiator is not '1'. */
+//Invering of Integer Matrix will be transformed to Rational
+//Matrix, and one exception will be thrown if there are some
+//element's denomiator is not '1'.
 bool INTMat::inv(OUT INTMat & e)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -841,9 +841,9 @@ bool INTMat::inv(OUT INTMat & e)
 }
 
 
-/* Determinant of Integer Matrix will be transformed to Rational
-Matrix, and one exception will be thrown if there are some
-element's denomiator is not '1'. */
+//Determinant of Integer Matrix will be transformed to Rational
+//Matrix, and one exception will be thrown if there are some
+//element's denomiator is not '1'.
 INT INTMat::det()
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -856,7 +856,7 @@ INT INTMat::det()
 
 
 //Generate unimodular matrix to elimnate element.
-void INTMat::gen_elim_mat(IN UINT row, IN UINT col, OUT INTMat & elim)
+void INTMat::gen_elim_mat(UINT row, UINT col, OUT INTMat & elim)
 {
     ASSERT(m_is_init, ("not yet initialize."));
     INT aii = get(row, row), aij = get(row, col), x, y;
@@ -1037,12 +1037,10 @@ void INTMat::gcd()
 }
 
 
-/* Find maximum convex hull of a set of 2-dimension points.(Graham scan)
-
-'c': coordinates of a set of points.
-'idx': 1*n matrix, indices of coordinates of convex hull.
-
-Note 'this' is a n*2 matrix that each row indicate one coordinate as (x,y). */
+//Find maximum convex hull of a set of 2-dimension points.(Graham scan)
+//'c': coordinates of a set of points.
+//'idx': 1*n matrix, indices of coordinates of convex hull.
+//Note 'this' is a n*2 matrix that each row indicate one coordinate as (x,y).
 void INTMat::cvexhull(OUT INTMat & hull)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -1111,14 +1109,14 @@ void INTMat::cvexhull(OUT INTMat & hull)
                 if (inserted) {
                     break;
                 }
-            }//end else ...
-        }//end for
+            } //end else ...
+        } //end for
 
         if (!inserted) {
             ASSERT(idx == 0, ("illegal list"));
             order.append_tail(i + 1); //The first index in list starting at '1'.
         }
-    }//end for
+    } //end for
 
     Stack<INT> s;
     s.push(p0_idx + 1);
@@ -1430,11 +1428,11 @@ void FloatMat::destroy()
 }
 
 
-/* Set value of elements one by one.
-'num': indicate the number of variant parameters.
-NOTICE:
-    Pamaters after 'num' must be float/double.
-    e.g: sete(NUM, 2.0, 3.0...) */
+//Set value of elements one by one.
+//'num': indicate the number of variant parameters.
+//NOTICE:
+// Pamaters after 'num' must be float/double.
+// e.g: sete(NUM, 2.0, 3.0...)
 void FloatMat::sete(UINT num, ...)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -1460,11 +1458,11 @@ void FloatMat::sete(UINT num, ...)
 }
 
 
-/* Set value of elements one by one.
-'num': indicate the number of variant parameters.
-NOTICE:
-    Pamaters after 'num' must be integer.
-    e.g: setie(NUM, 2, 3...) */
+//Set value of elements one by one.
+//'num': indicate the number of variant parameters.
+//NOTICE:
+//  Pamaters after 'num' must be integer.
+//  e.g: setie(NUM, 2, 3...)
 void FloatMat::setie(UINT num, ...)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -1497,7 +1495,7 @@ FloatMat& FloatMat::operator = (FloatMat const& m)
 }
 
 
-void FloatMat::substit(IN FloatMat const& exp, IN UINT v, bool is_eq, INT rhs_idx)
+void FloatMat::substit(IN FloatMat const& exp, UINT v, bool is_eq, INT rhs_idx)
 {
     ASSERT(m_is_init && exp.m_is_init,
                             ("not yet initialize."));
@@ -1574,7 +1572,7 @@ FloatMat operator - (FloatMat const& a, FloatMat const& b)
 static void bool_dumpf_by_handle(void const* pbasis, FILE * h)
 {
     ASSERT(h != NULL, ("file handle is NULL"));
-    BMAT * pthis = (BMAT*)pbasis;
+    BMat * pthis = (BMat*)pbasis;
     fprintf(h, "\nMATRIX(%d,%d)\n", pthis->get_row_size(), pthis->get_col_size());
     for (UINT i = 0; i < pthis->get_row_size(); i++) {
         fprintf(h, "\t");
@@ -1606,7 +1604,7 @@ static void bool_dumpf(void const* pbasis, CHAR const* name, bool is_del)
 //Print as real number even though T is integer.
 static void bool_dumps(void const* pbasis)
 {
-    BMAT * pthis = (BMAT*)pbasis;
+    BMat * pthis = (BMat*)pbasis;
     printf("\n");
     for (UINT i = 0; i < pthis->get_row_size(); i++) {
         printf("\t");
@@ -1620,7 +1618,7 @@ static void bool_dumps(void const* pbasis)
 }
 
 
-BMAT::BMAT()
+BMat::BMat()
 {
     m_is_init = false;
     init();
@@ -1628,13 +1626,13 @@ BMAT::BMAT()
 
 
 //used by template call of T(0) in Vector<Mat>
-BMAT::BMAT(INT)
+BMat::BMat(INT)
 {
-    BMAT();
+    BMat();
 }
 
 
-BMAT::BMAT(UINT row, UINT col)
+BMat::BMat(UINT row, UINT col)
 {
     m_is_init = false;
     init();
@@ -1642,13 +1640,13 @@ BMAT::BMAT(UINT row, UINT col)
 }
 
 
-BMAT::~BMAT()
+BMat::~BMat()
 {
     destroy();
 }
 
 
-void BMAT::init()
+void BMat::init()
 {
     if (m_is_init) return;
     ((Matrix<bool>*)this)->init();
@@ -1661,7 +1659,7 @@ void BMAT::init()
 }
 
 
-void BMAT::destroy()
+void BMat::destroy()
 {
     if(!m_is_init) return;
     m_is_init = false;
@@ -1670,7 +1668,7 @@ void BMAT::destroy()
 
 //Assignment value of matrix element
 //e.g: sete(3, true, true, false)
-void BMAT::sete(UINT num, ...)
+void BMat::sete(UINT num, ...)
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(num <= m_col_size*m_row_size, ("set out of boundary."));
@@ -1694,7 +1692,7 @@ void BMAT::sete(UINT num, ...)
 }
 
 
-BMAT& BMAT::operator = (BMAT const& m)
+BMat& BMat::operator = (BMat const& m)
 {
     ((Matrix<bool>*)this)->copy(*((Matrix<bool>*)&m));
     return *this;

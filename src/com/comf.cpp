@@ -151,7 +151,7 @@ ASCII g_asc1[] = {
 
 
 //Caculate the number of bits which longer enough to represent given constant.
-UINT get_const_bit_len(LONGLONG v)
+UINT computeConstBitLen(LONGLONG v)
 {
 #ifdef _VC6_
     if (!(v & 0xffffffffffffff00)) return 8;
@@ -204,29 +204,25 @@ INT xfloor(INT a, INT b)
 }
 
 
-//Round up to plus infinity
+//Round up to plus infinity.
 INT xceiling(INT a, INT b)
 {
     ASSERT(b != 0, ("div zero"));
     if (a % b == 0) {
-        /*
-        (a+b-1)/b will be errorneous
-        CASE:ceil(-4, 2)
-        */
+        //(a+b-1)/b will be errorneous
+        //CASE:ceil(-4, 2)
         return a / b;
     } else if ((a < 0 && b < 0) || (a > 0 && b > 0)) {
         return ((a + b) / b);
     } else {
-        /*
-        (a+b-1)/b will be errorneous
-        CASE:ceil(5,-2)
-        */
+        //(a+b-1)/b will be errorneous
+        //CASE:ceil(5,-2)
         return (a / b);
     }
 }
 
 
-//Great common divisor
+//Great common divisor.
 INT sgcd(INT x, INT y)
 {
     INT t;
@@ -255,15 +251,14 @@ INT slcm(INT x, INT y)
 }
 
 
-INT gcdm(UINT num, Vector<INT, 8> const& a)
+//Great common divisor for values stored in vector.
+INT gcdm(UINT num, Vector<INT, 8> const& values)
 {
-    if (num == 0) {
-        return 0;
-    }
-    INT n1 = a[0];
+    if (num == 0) { return 0; }
+    INT n1 = values[0];
     UINT i = 1;
     while (i < num) {
-        INT n2 = a[i];
+        INT n2 = values[i];
         n1 = sgcd(n1, n2);
         if (n1 == 1) {
             return 1;
@@ -296,7 +291,8 @@ INT gcdm(UINT num, ...)
     return n1;
 }
 
-static INT _exgcd(IN INT a, IN INT b, OUT INT & x, OUT INT & y)
+
+static INT _exgcd(INT a, INT b, OUT INT & x, OUT INT & y)
 {
     if (b == 0) {
         x = 1;
@@ -311,9 +307,9 @@ static INT _exgcd(IN INT a, IN INT b, OUT INT & x, OUT INT & y)
 }
 
 
-//Extended Euclid Method
+//Extended Euclid Method.
 //    ax + by = ay' + b(x' -floor(a/b)*y') = gcd(a,b) = gcd(b, a%b)
-INT exgcd(IN INT a, IN INT b, OUT INT & x, OUT INT & y)
+INT exgcd(INT a, INT b, OUT INT & x, OUT INT & y)
 {
     INT gcd = _exgcd(a, b, x, y);
     if (gcd < 0) {
@@ -352,9 +348,9 @@ UINT arra(UINT n, UINT m)
 }
 
 
-/* Combination
-C(n,m)=(n*(n-1)*...*(n-m+1))/m! = n!/m!(n-m)!
-Simplify:C(n,m)=(n*(n-1)*(m+1))/(n-m)! */
+//Combination
+//C(n,m)=(n*(n-1)*...*(n-m+1))/m! = n!/m!(n-m)!
+//Simplify:C(n,m)=(n*(n-1)*(m+1))/(n-m)!
 UINT combin(UINT n, UINT m)
 {
     ASSERT(n != 0 && m != 0 && n >= m, ("illegal param"));
@@ -371,10 +367,8 @@ UINT combin(UINT n, UINT m)
 }
 
 
-/* Convert char value into binary.
-e.g:
-    char p = ' '; p is blank.
-*/
+//Convert char value into binary.
+//e.g: char p = ' '; p is blank.
 INT xctoi(CHAR const* cl)
 {
     #ifndef BYTE_PER_INT
@@ -401,10 +395,10 @@ INT xctoi(CHAR const* cl)
 }
 
 
-/* Convert a string into long integer.
-e.g: cl = '1','2','3','4','5'
-return 12345.
-'is_oct': if true, nptr is octal digits. */
+//Convert a string into long integer.
+//e.g: cl = '1','2','3','4','5'
+//return 12345.
+//'is_oct': if true, nptr is octal digits.
 LONG xatol(CHAR const* nptr, bool is_oct)
 {
     if (nptr == NULL) return 0;
@@ -458,13 +452,13 @@ LONGLONG xabs(LONGLONG a)
 }
 
 
-/* Find partial string, return the subscript-index if substring found,
-otherwise return -1.
-
-'src': input string.
-'par': partial string.
-'i': find the ith partial string. And 'i' get started with 0.
-    If one only want to find the first partial string, i equals to 0. */
+//Find partial string, return the subscript-index if substring found,
+//otherwise return -1.
+//
+//'src': input string.
+//'par': partial string.
+//'i': find the ith partial string. And 'i' get started with 0.
+//    If one only want to find the first partial string, i equals to 0.
 INT xstrstr(CHAR const* src, CHAR const* par, INT i)
 {
     CHAR const* s = src;
@@ -484,6 +478,46 @@ INT xstrstr(CHAR const* src, CHAR const* par, INT i)
         s++;
     }
     return -1;
+}
+
+
+//Split string by given separetor, and return the number of substring.
+//str: input string.
+//ret: record each substring which separated by sep.
+//sep: separator.
+//Note caller is responsible for the free of each string memory in ret.
+UINT xsplit(CHAR const* str, OUT Vector<CHAR*> & ret, CHAR const* sep)
+{
+    ASSERT0(str);
+    ASSERT(strlen(sep) == 1, ("separator must be single character"));
+    CHAR const* start = str;
+    CHAR const* end = str;
+
+    UINT num = 0;
+    UINT len = 0;
+    for (; *end != 0;) {
+        if (*end != *sep) { len++; end++; continue; }
+
+        CHAR * substr = (CHAR*)malloc(len + 1);
+        memcpy(substr, start, len);
+        substr[len] = 0;
+        ret.set(num, substr);
+        num++;
+        len = 0;
+        end++;
+        start = end;
+    }
+
+    CHAR * substr = (CHAR*)malloc(len + 1);
+    memcpy(substr, start, len);
+    substr[len] = 0;
+    ret.set(num, substr);
+    num++;
+    len = 0;
+    end++;
+    start = end;
+
+    return num;
 }
 
 
@@ -653,11 +687,8 @@ void dumps_svec(void * vec, UINT ty)
 }
 
 
-/*
-Reverse a DWORD by lexicalgraph
-e.g:if 'd' is 0x12345678
-    return 0x78563412
-*/
+//Reverse a DWORD by lexicalgraph.
+//e.g:if 'd' is 0x12345678, return 0x78563412
 LONG revlong(LONG d)
 {
     CHAR * c = (CHAR*)&d, m;
@@ -715,17 +746,18 @@ UINT getLookupPopCount(ULONGLONG v)
 }
 
 
-//Searchs for sub-string
+//Searchs for sub-string.
 INT findstr(CHAR * src, CHAR * s)
 {
+    if (src == NULL || s == NULL) { return 0; }
+
     // can't have empty or NULL 'old'
     INT srclen = -1;
     CHAR * startp = src, * p, * q;
-    INT l = 0, i = 0;
-    if (src == NULL || s == NULL) { return 0; }
+    INT l = 0;
+    INT i = 0;
     srclen = strlen(src);
     p = startp;
-    i = 0;
     while (p[i] != 0) {
         if (p[i] == s[0]) {
             q = &p[i];
@@ -734,6 +766,7 @@ INT findstr(CHAR * src, CHAR * s)
                 if (q[l] != s[l]) { break; }
                 l++;
             }
+
             if (s[l] == 0) {//match seacrching
                 goto FIND;
             }
@@ -741,15 +774,14 @@ INT findstr(CHAR * src, CHAR * s)
         i++;
     }
     return 0;
+
 FIND:
     return 1;
 }
 
 
-/*
-Ceil rounding alignment.
-e.g  v=17 , align=4 , the result is 20
-*/
+//Ceil rounding alignment.
+//e.g  v=17 , align=4 , the result is 20.
 LONGLONG ceil_align(LONGLONG v, LONGLONG align)
 {
     if (align == 0 || align == 1) return v;
@@ -761,124 +793,146 @@ LONGLONG ceil_align(LONGLONG v, LONGLONG align)
 
 
 //Extract file path.
-//e.g: Given /xxx/yyy/a.file, return /xxx/yyy/
-CHAR * getfilepath(IN CHAR * n, OUT CHAR * buf, UINT bufl)
+//e.g: Given /xx/yy/zz.file, return /xx/yy
+CHAR * getfilepath(CHAR const* n, OUT CHAR * buf, UINT bufl)
 {
-    INT l = strlen(n), i = 0;
-    if (n == NULL) return NULL;
-    i = l;
-    while (i >= 0) {
-        if (n[i] != '\\' && n[i] != '/') {
-            i--;
-        } else {
-            break;
-        }
+    if (n == NULL) { return NULL; }
+
+    ASSERT0(buf);
+    INT l = strlen(n);
+    INT i = l;
+    while (n[i] != '\\' && n[i] != '/' && i >= 0) {
+        i--;
     }
+
     if (i < 0) {
         return NULL;
-    } else {
-        UNUSED(bufl);
-        ASSERT0((UINT)i < bufl);
-        memcpy(buf, n, i);
-        buf[i] = 0;
     }
+
+    UNUSED(bufl);
+    ASSERT0(i < (INT)bufl);
+    memcpy(buf, n, i);
+    buf[i] = 0;
     return buf;
 }
 
 
-/*
-Shift a string to right side or left side
-OFST : greate than zero means shifting SRC to right side,
-       and the displacement is abs(ofst); negative
-       means shifting SRC to left.
-*/
-void strshift(CHAR * src, INT ofst)
+//Shift a string to right side or left side.
+//ofst: great than zero means shifting string to right side,
+//   and the displacement is abs(ofst); negative
+//   means shifting string to left.
+void strshift(IN OUT CHAR * string, INT ofst)
 {
-    INT len = strlen(src), i;
-    if (!src) return;
+    INT len = strlen(string), i;
+    if (string == NULL) { return; }
 
-    if (ofst>=0) { //shift to right
+    if (ofst >= 0) { //shift to right
         if (ofst >= len) {
-            src[0] = 0;
+            string[0] = 0;
         } else {
-            src[len - ofst] = 0;
+            string[len - ofst] = 0;
         }
     } else if (ofst < 0) { //shift to left
         if ((-ofst) >= len) {
-            src[0] = 0;
+            string[0] = 0;
         } else {
             INT diff = len + ofst;
             ofst = -ofst;
             i = 0;
             while (i < diff ) {
-                src[i] = src[ofst + i];
+                string[i] = string[ofst + i];
                 i++;
             }
-            src[i] = 0;
+            string[i] = 0;
         }
     }
 }
 
 
 //Extract file name.
-//e.g: Given /xx/yy/name.foo, return name.
-CHAR * getfilename(CHAR * n, OUT CHAR * buf, UINT bufl)
+//e.g: Given /xx/yy/zz.foo, return zz.
+CHAR * getfilename(CHAR const* path, OUT CHAR * buf, UINT bufl)
 {
     UNUSED(bufl);
-    INT l = strlen(n), i = 0;
-    CHAR * p;
-    if (n == NULL) { return NULL; }
-    i = l;
-    while (i >= 0) {
-        if (n[i] != '\\' && n[i] != '/') {
-            i--;
-        } else {
-            break;
+    if (path == NULL) { return NULL; }
+    INT l = strlen(path);
+    INT i = l;
+    INT dotpos = -1;
+    while (path[i] != '\\' && path[i] != '/' && i >= 0) {
+        if (path[i] == '.') {
+            dotpos = i;
         }
+        i--;
     }
+    i++;
+    ASSERT0(i < (INT)bufl);
+    UINT start;
+    UINT end;
+    if (i < 0) { start = 0; }
+    else { start = i; }
 
-    if (i < 0) {
-        i = l;
-        p = n;
-    } else {
-        p = (CHAR*)ALLOCA(l - i);
-        memcpy(p, n + i + 1, l - i);
-        i = l - i;
+    if (dotpos < 0) { end = l; }
+    else { end = dotpos; }
+
+    UINT len = end - start;
+    if (len > 0) {
+        memcpy(buf, path + start, len);
     }
-
-    while (i >= 0) {
-        if (p[i] != '.') {
-            i--;
-        } else {
-            break;
-        }
-    }
-
-    ASSERT0((UINT)i < bufl);
-    memcpy(buf, p, i);
-    buf[i] = 0;
+    buf[len] = 0;
     return buf;
 }
 
 
 //Extract file suffix.
 //e.g: Given a.foo, return foo.
-CHAR * getfilesuffix(CHAR * n, OUT CHAR * buf)
+CHAR * getfilesuffix(CHAR const* n, OUT CHAR * buf, UINT bufl)
 {
-    INT l = strlen(n), i = 0;
-    CHAR * v = buf;
-    if (n == NULL) return NULL;
-    i = l;
-    while (i >= 0) {
-        if (n[i] != '.') {
-            i--;
-        } else {
+    if (n == NULL) { return NULL; }
+
+    INT l = strlen(n);
+    INT i = l;
+    while (n[i] != '.' && i >= 0) {
+        i--;
+    }
+    UNUSED(bufl);
+    if (i < 0) { return NULL; }
+    ASSERT0((UINT)(l - i -1) < bufl);
+    memcpy(buf, n + i + 1, l - i -1);
+    buf[l - i -1] = 0;
+    return buf;
+}
+
+
+//Extract the right most sub-string which separated by 'separator' from string.
+//e.g: Given string is a\b\c, separator is '\', return c;
+CHAR const* extractRightMostSubString(CHAR const* string, CHAR separator)
+{
+    UINT l = strlen(string);
+    CHAR const* p = string + l;
+    for (; l != 0; l--, p--) {
+        if (*p == separator) {
+            return p + 1;
+        }
+    }
+
+    //Not found method name.
+    return p;
+}
+
+
+//Extract the left most sub-string which separated by 'separator' from string.
+void extractLeftMostSubString(CHAR * tgt, CHAR const* string, CHAR separator)
+{
+    CHAR const* p = string;
+    for (CHAR c = *p; c != 0; p++, c = *p) {
+        if (c == separator) {
             break;
         }
     }
-    memcpy(v, n + i + 1, l - i -1);
-    v[l - i -1] = 0;
-    return v;
+
+    UINT l = p - string;
+    memcpy(tgt, string, l);
+    tgt[l] = 0;
 }
 
 
@@ -907,8 +961,9 @@ bool xstrcmp(CHAR const* p1, CHAR const* p2, INT n)
 }
 
 
-CHAR * upper(CHAR* n)
+CHAR * upper(CHAR * n)
 {
+    if (n == NULL) { return NULL; }
     LONG l = strlen(n);
     l--;
     while (l >= 0) {
@@ -922,6 +977,7 @@ CHAR * upper(CHAR* n)
 
 CHAR * lower(CHAR * n)
 {
+    if (n == NULL) { return NULL; }
     LONG l = strlen(n);
     l--;
     while (l >= 0) {
@@ -933,10 +989,8 @@ CHAR * lower(CHAR * n)
 }
 
 
-/*
-Get the index of the first '1' start at most right side.
-e.g: given m=0x8, the first '1' index is 3.
-*/
+//Get the index of the first '1' start at most right side.
+//e.g: given m=0x8, the first '1' index is 3.
 INT getFirstOneAtRightSide(INT m)
 {
     static const INT dbitpos[32] = {
@@ -950,10 +1004,8 @@ INT getFirstOneAtRightSide(INT m)
 //Judge if 'f' is integer conform to IEEE754 spec.
 bool is_integer(float f)
 {
-    /*
-    0000 0000 0111 1111 1111 1111 1111 1111 //mantissa
-    0111 1111 1000 0000 0000 0000 0000 0000 //exp
-    */
+    //0000 0000 0111 1111 1111 1111 1111 1111 //mantissa
+    //0111 1111 1000 0000 0000 0000 0000 0000 //exp
     float * p = &f;
     INT i = *(INT*)p;
     INT m = i & 0x007FFFFF; //mantissa
@@ -995,12 +1047,10 @@ bool isPowerOf5(double f)
 }
 
 
-/*
-Return the position in array if find v.
-'array': sorted in incremental order.
-'n': elements size of array.
-'v': search v in array.
-*/
+//Return the position in array if find v.
+//array: sorted in incremental order.
+//n: elements size of array.
+//v: search v in array.
 bool binsearch(INT array[], UINT n, INT v, IN OUT UINT * ppos)
 {
     if (n == 0) return false;
@@ -1273,11 +1323,9 @@ LETTER:
     switch (ch) {
     case 'c': //ANSI CHAR
         {
-            /*
-            CHAR is promoted to INT when passed through '...'.
-            So you should pass 'INT' not 'CHAR' to 'va_arg'.
-            If this code is reached, the program will abort.
-            */
+            //CHAR is promoted to INT when passed through '...'.
+            //So you should pass 'INT' not 'CHAR' to 'va_arg'.
+            //If this code is reached, the program will abort.
             CHAR c = (CHAR)va_arg(stack_start, INT);
             if (!prtchar(buf, buflen, bufpos, c)) goto OVER;
         }
@@ -1390,9 +1438,9 @@ OVER: //We got some problems, and going to the xsprintf.
 
 
 static bool back_slash(CHAR * buf,
-                    UINT buflen,
-                    IN OUT UINT * bufpos,
-                    IN OUT CHAR const** format)
+                       UINT buflen,
+                       IN OUT UINT * bufpos,
+                       IN OUT CHAR const** format)
 {
     CHAR const* pos = *format;
     CHAR ch = *pos++;
@@ -1425,14 +1473,12 @@ OVER: //Get some problems.
 }
 
 
-/*
-Format string and record in buf.
-'buf': output buffer record string.
-'stack_start': point to the first args.
-*/
+//Format string and record in buf.
+//buf: output buffer that record string.
+//buflen: length of output buffer.
 CHAR * xsprintf(IN OUT CHAR * buf,
-                IN UINT buflen,
-                IN CHAR const* format,
+                UINT buflen,
+                CHAR const* format,
                 ...)
 {
     UINT bufpos = 0;

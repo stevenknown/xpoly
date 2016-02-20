@@ -50,7 +50,6 @@ typedef size_t MEMPOOLIDX;
 typedef enum {
     MEM_NONE = 0,
     MEM_COMM,     //can be realloc, free
-    MEM_VOLATILE, //can be realloc , but free is forbidded
     MEM_CONST_SIZE, //the element in the pool should be in same size.
 } MEMPOOLTYPE;
 
@@ -103,7 +102,15 @@ void * smpoolMallocConstSize(size_t elem_size, IN SMemPool * handler);
 //Get whole pool size with byte
 size_t smpoolGetPoolSizeViaIndex(MEMPOOLIDX mpt_idx);
 size_t smpoolGetPoolSize(SMemPool const* handle);
+
+//This function do some initializations if you want to manipulate pool
+//via pool index.
+//Note if you just create pool and manipulate pool via handler,
+//the initialization is dispensable.
 void smpoolInitPool(); //Initializing pool utilities
+
+//This function perform finialization works if you invoke the
+//smpoolInitPool().
 void smpoolFiniPool(); //Finializing pool
 
 void dumpPool(SMemPool * handler, FILE * h);
