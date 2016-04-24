@@ -107,7 +107,7 @@ public:
     bool is_fully_permutable(IN DVECS const& dvec);
     bool is_legal(IN DVECS const& dvec);
     bool is_innermost_loop_parallelizable(IN DVECS const& dvec);
-    bool permuteOutZeroRows(OUT RMat & t, IN RMat const& m);
+    bool permuteOutZeroRows(OUT RMat & t, RMat const& m);
     bool parallelInnerLoops(OUT RMat & t,
                             IN DVECS const& dvec, UINT dep_level = 0,
                             UINT option = OP_DELTA | OP_PERM);
@@ -175,7 +175,7 @@ public:
                     IN RMat * pofst = NULL,
                     IN RMat * pmul = NULL,
                     IN CHAR * name = NULL,
-                    IN bool is_del = false);
+                    bool is_del = false);
 };
 #endif
 

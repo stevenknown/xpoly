@@ -32,42 +32,42 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class GPOLY : public POLY {
 public:
-	virtual ~GPOLY() {}
-	void dump_arr_base(poly_bb * pbb, FILE * h, INT indent);
-	virtual void dump(CHAR * name = NULL);
+    virtual ~GPOLY() {}
+    void dump_arr_base(poly_bb * pbb, FILE * h, INT indent);
+    virtual void dump(CHAR * name = NULL);
 };
 
 
 //Reference Dependence Graph
 class REF_DG : public DG {
 public:
-	REF_DG(IN LIST<POLY*> & lst);
-	virtual ~REF_DG();
-	virtual bool is_red_stmt(IN POLY const& p);
-	void dump(IN LIST<POLY*> & lst, bool is_detail);
+    REF_DG(IN LIST<POLY*> & lst);
+    virtual ~REF_DG();
+    virtual bool is_red_stmt(IN POLY const& p);
+    void dump(IN LIST<POLY*> & lst, bool is_detail);
 };
 
 
 //Stmt Dependence Graph
-#define SDG_stmt_vec(g)		((g).stmt_vec)
-#define SDG_stmt_bs(g)		((g).stmt_bs)
+#define SDG_stmt_vec(g)        ((g).stmt_vec)
+#define SDG_stmt_bs(g)        ((g).stmt_bs)
 class STMT_DG : public GRAPH {
 public:
-	BITSET stmt_bs; //record stmt in scop.
-	SVECTOR<basic_block> stmt_vec;
+    BITSET stmt_bs; //record stmt in scop.
+    SVECTOR<basic_block> stmt_vec;
 
-	STMT_DG(scop * s);
-	virtual ~STMT_DG() {}
-	virtual void dump(CHAR * name = NULL);
+    STMT_DG(scop * s);
+    virtual ~STMT_DG() {}
+    virtual void dump(CHAR * name = NULL);
 };
 
 
 class GPOLY_MGR : public POLY_MGR {
 public:
-	virtual ~GPOLY_MGR() {}
-	virtual POLY * new_poly()
-	{
-		return new GPOLY();
-	}
+    virtual ~GPOLY_MGR() {}
+    virtual POLY * new_poly()
+    {
+        return new GPOLY();
+    }
 };
 #endif

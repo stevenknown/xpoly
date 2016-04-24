@@ -52,8 +52,9 @@ using namespace xcom;
 #define INTERCH_BY_UNI
 
 static CHAR * format_rational(
-                    IN Rational const& rat,
-                    IN CHAR * buf, bool is_coeff)
+        IN Rational const& rat,
+        IN CHAR * buf,
+        bool is_coeff)
 {
     CHAR * blank;
     if (is_coeff) {
@@ -124,7 +125,7 @@ DepGraph::~DepGraph()
 }
 
 
-bool DepGraph::is_red_stmt(IN Poly const&)
+bool DepGraph::is_red_stmt(Poly const&)
 {
     return false;
 }
@@ -132,10 +133,10 @@ bool DepGraph::is_red_stmt(IN Poly const&)
 
 //Return true if 'am1', 'am2' is the references of a reduction.
 bool DepGraph::is_red_pair(
-                Poly const& p1,
-                Poly const& p2,
-                AccMat const& am1,
-                AccMat const& am2)
+        Poly const& p1,
+        Poly const& p2,
+        AccMat const& am1,
+        AccMat const& am2)
 {
     if (is_red_stmt(p1)) {
         List<AccMat*> lst;
@@ -269,6 +270,8 @@ void DepGraph::rebuild(IN List<Poly*> & lst, bool is_build_graph)
     erase();
     set_unique(false);
     m_orig_dpmgr.clean();
+    if (!is_build_graph) { return; }
+
     C<Poly*> * it1;
     C<Poly*> * it2;
     VarConstraintMat vc, * pvc;
@@ -295,14 +298,14 @@ void DepGraph::rebuild(IN List<Poly*> & lst, bool is_build_graph)
                      am2 != NULL; am2 = lst_2.get_next(&iit2)) {
                     DepVec * dpvec = m_orig_dpmgr.buildDepPoly(*p1,
                                             *p2, *am1, *am2, pvc, false);
-                    if (is_build_graph && dpvec != NULL) {
-                        Edge * e = addEdge(ACC_MAT_id(*am1),
-                                            ACC_MAT_id(*am2));
-                        ASSERT0(EDGE_info(e) == NULL);
-                        DepGraphInfo * ei = (DepGraphInfo*)xmalloc(sizeof(DepGraphInfo));
-                        EDGE_info(e) = ei;
-                        DGEINFO_dpvec(ei) = dpvec;
-                    }
+                    if (dpvec == NULL) { continue; }
+
+                    Edge * e = addEdge(ACC_MAT_id(*am1), ACC_MAT_id(*am2));
+                    ASSERT0(EDGE_info(e) == NULL);
+                    DepGraphInfo * ei =
+                        (DepGraphInfo*)xmalloc(sizeof(DepGraphInfo));
+                    EDGE_info(e) = ei;
+                    DGEINFO_dpvec(ei) = dpvec;
                 }
             }
         }
@@ -310,16 +313,17 @@ void DepGraph::rebuild(IN List<Poly*> & lst, bool is_build_graph)
 }
 
 
-void DepGraph::set_dep_poly(IN Vertex const* from,
-                    IN Vertex const* to,
-                    IN DepVec const* dp)
+void DepGraph::set_dep_poly(
+        Vertex const* from,
+        Vertex const* to,
+        DepVec const* dp)
 {
     ASSERT0(from != NULL && to != NULL);
     set_dep_poly(get_edge(from, to), dp);
 }
 
 
-void DepGraph::set_dep_poly(IN Edge * e, IN DepVec const* dp)
+void DepGraph::set_dep_poly(IN Edge * e, DepVec const* dp)
 {
     ASSERT0(e != NULL && dp != NULL);
     DepGraphInfo * ei = (DepGraphInfo*)EDGE_info(e);
@@ -331,7 +335,7 @@ void DepGraph::set_dep_poly(IN Edge * e, IN DepVec const* dp)
 }
 
 
-DepVec const* DepGraph::get_dep_poly(IN Edge const* e) const
+DepVec const* DepGraph::get_dep_poly(Edge const* e) const
 {
     ASSERT0(e != NULL);
     DepGraphInfo const* ei = (DepGraphInfo*)EDGE_info(e);
@@ -356,7 +360,7 @@ void DepGraph::set_from_quasi_func(IN Edge * e, IN RMat * quasi)
 }
 
 
-RMat * DepGraph::get_from_quasi_func(IN Edge const* e) const
+RMat * DepGraph::get_from_quasi_func(Edge const* e) const
 {
     DepGraphInfo * ei = (DepGraphInfo*)EDGE_info(e);
     if (ei == NULL) {
@@ -380,7 +384,7 @@ void DepGraph::set_to_quasi_func(IN Edge * e, IN RMat * quasi)
 }
 
 
-RMat * DepGraph::get_to_quasi_func(IN Edge const* e) const
+RMat * DepGraph::get_to_quasi_func(Edge const* e) const
 {
     DepGraphInfo * ei = (DepGraphInfo*)EDGE_info(e);
     if (ei == NULL) {
@@ -390,7 +394,7 @@ RMat * DepGraph::get_to_quasi_func(IN Edge const* e) const
 }
 
 
-RMat * DepGraph::get_sch_mat(IN Poly const* p)
+RMat * DepGraph::get_sch_mat(Poly const* p)
 {
     RMat * sch = m_sch_mat.get(POLY_id(*p));
     if (sch == NULL) {
@@ -443,9 +447,9 @@ void DepPolyList::intersect(IN DepPolyList & dpl)
 }
 
 
-/* Return true if there is not empty for intersection of two list of polyhedra.
-Keep original dep-poly list unchanged.
-NOTICE: Each variables of dependence polyhedron must be positive. */
+//Return true if there is not empty for intersection of two list of polyhedra.
+//Keep original dep-poly list unchanged.
+//NOTICE: Each variables of dependence polyhedron must be positive.
 bool DepPolyList::is_intersect_empty(IN DepPolyList & dpl)
 {
     DepPoly tmp;
@@ -477,13 +481,11 @@ bool DepPolyList::is_empty(bool keepit, VarConstraintMat const* vc)
 //END DepPolyList
 
 
-
-
 //
 //START DepPoly
 //
 //Polyhedral Operation: intersection between polyhedra.
-void DepPoly::copy(IN DepPoly const& dp)
+void DepPoly::copy(DepPoly const& dp)
 {
     RMat::copy(dp);
     rhs_idx = dp.rhs_idx;
@@ -492,20 +494,20 @@ void DepPoly::copy(IN DepPoly const& dp)
 }
 
 
-void DepPoly::copy(IN RMat const& r, UINT rhs_idx)
+void DepPoly::copy(RMat const& r, UINT rhs_idx)
 {
     RMat::copy(r);
     this->rhs_idx = rhs_idx;
 }
 
 
-void DepPoly::intersect(IN RMat const& r)
+void DepPoly::intersect(RMat const& r)
 {
     intersect((DepPoly const&)r);
 }
 
 
-void DepPoly::intersect(IN DepPoly const& dp)
+void DepPoly::intersect(DepPoly const& dp)
 {
     if (dp.get_row_size() == 0) {
         clean();
@@ -522,10 +524,8 @@ void DepPoly::intersect(IN DepPoly const& dp)
 }
 
 
-/*
-Return true if there is no rational point was inside polyhedra.
-'keepit': it is true if one expect to keep the dep-poly unchanged.
-*/
+//Return true if there is no rational point was inside polyhedra.
+//'keepit': it is true if one expect to keep the dep-poly unchanged.
 bool DepPoly::is_empty(bool keepit, VarConstraintMat const* vc)
 {
     //Eliminate variable via FME.
@@ -623,14 +623,14 @@ void DepPoly::insertLocalVar(OUT UINT * lv1_idx, OUT UINT * lv2_idx)
 }
 
 
-void DepPoly::eliminateAuxVar(IN Poly const& from, IN Poly const& to)
+void DepPoly::eliminateAuxVar(Poly const& from, Poly const& to)
 {
     UNUSED(from);
     UNUSED(to);
     ASSERT(from.get_num_of_var() == to.get_num_of_var() &&
-            from.get_num_of_param() == to.get_num_of_param() &&
-            from.get_num_of_localvar() == to.get_num_of_localvar(),
-            ("iteration space must be isomorphism"));
+           from.get_num_of_param() == to.get_num_of_param() &&
+           from.get_num_of_localvar() == to.get_num_of_localvar(),
+           ("iteration space must be isomorphism"));
 
     ASSERT0(DEP_POLY_rhs_idx(*this) == 2 * from.get_num_of_var());
 
@@ -738,6 +738,7 @@ void DepPoly::dump(FILE * h, UINT indent)
                 has_prt = true;
             }
         } //end for
+
         if (!has_prt) {
             fprintf(h, "0");
         }
@@ -750,8 +751,11 @@ void DepPoly::dump(FILE * h, UINT indent)
 //
 //START DepPolyHash
 //
-DepVec * DepPolyHash::find(IN Poly const& from, IN Poly const& to,
-                            IN AccMat const& am1, IN AccMat const& am2)
+DepVec * DepPolyHash::find(
+        Poly const& from,
+        Poly const& to,
+        AccMat const& am1,
+        AccMat const& am2)
 {
     RefHash tmp(POLY_id(from), POLY_id(to));
     RefHash * rf;
@@ -767,11 +771,14 @@ DepVec * DepPolyHash::find(IN Poly const& from, IN Poly const& to,
 }
 
 
-/* Return the DepVec record in hash-table, or inserting 'dp' into table if
-there is no this item in the table.
-'dp': the DepVec want to inserted. */
-DepVec * DepPolyHash::append(IN Poly const& from, IN Poly const& to,
-                              IN AccMat const& am1, IN AccMat const& am2)
+//Return the DepVec record in hash-table, or inserting 'dp' into table if
+//there is no this item in the table.
+//'dp': the DepVec want to inserted.
+DepVec * DepPolyHash::append(
+        Poly const& from,
+        Poly const& to,
+        AccMat const& am1,
+        AccMat const& am2)
 {
     RefHash tmp(POLY_id(from), POLY_id(to));
     RefHash * rf;
@@ -815,7 +822,7 @@ list of polyhedra. Keep original dep-poly list unchanged.
     And this will obtain the most conservative result.
 
 NOTICE: Each variables of dependence polyhedron must be positive. */
-bool DepVec::is_intersect_empty(IN DepVec const& dpvec,
+bool DepVec::is_intersect_empty(DepVec const& dpvec,
                             bool is_cross_depth) const
 {
     DepPolyList * my_dp;
@@ -949,11 +956,12 @@ void DepPolyMgr::clean()
 
 
 //Build execute conflict condition.
-void DepPolyMgr::buildAccExecCond(IN Poly const& from,
-                                        IN Poly const&, //to
-                                        IN AccMat const& from_acc,
-                                        IN AccMat const& to_acc,
-                                        OUT RMat & res)
+void DepPolyMgr::buildAccExecCond(
+        Poly const& from,
+        Poly const&, //to
+        AccMat const& from_acc,
+        AccMat const& to_acc,
+        OUT RMat & res)
 {
     UINT const rhs_idx = POLY_domain_rhs_idx(from);
     UINT const nvar = from.get_num_of_var();
@@ -985,9 +993,10 @@ void DepPolyMgr::buildAccExecCond(IN Poly const& from,
 
 
 //Build execute conflict condition to domain.
-void DepPolyMgr::buildDomainExecCond(IN Poly const& from,
-                                        IN Poly const& to,
-                                        OUT RMat & res)
+void DepPolyMgr::buildDomainExecCond(
+        Poly const& from,
+        Poly const& to,
+        OUT RMat & res)
 {
     UINT const rhs_idx = POLY_domain_rhs_idx(from);
     UINT const nvar = from.get_num_of_var();
@@ -1043,9 +1052,10 @@ void DepPolyMgr::buildDomainExecCond(IN Poly const& from,
 }
 
 
-DepPolyList * DepPolyMgr::conjoin(IN DepPoly const& c1,
-                                    IN DepPoly const& c2,
-                                    IN VarConstraintMat const* vc)
+DepPolyList * DepPolyMgr::conjoin(
+        DepPoly const& c1,
+        DepPoly const& c2,
+        VarConstraintMat const* vc)
 {
     DepPolyList * dpl = new DepPolyList();
     DepPoly * dp = new DepPoly(c1);
@@ -1063,21 +1073,22 @@ DepPolyList * DepPolyMgr::conjoin(IN DepPoly const& c1,
 }
 
 
-/* Build Syntax Order Relation:
-(¦Âfrom) == (¦Âto), depth is in 0~p-1.
-(¦Âfrom)+1¡Ü(¦Âto), at depth p.
-*/
-void DepPolyMgr::buildContextRelation(Poly const&, //from
-                                        Poly const&, //to
-                                        OUT RMat &) //result
+//Build Syntax Order Relation:
+//(¦Âfrom) == (¦Âto), depth is in 0~p-1.
+//(¦Âfrom)+1¡Ü(¦Âto), at depth p.
+void DepPolyMgr::buildContextRelation(
+        Poly const&, //from
+        Poly const&, //to
+        OUT RMat &) //result
 {
     //TODO.
 }
 
 
-void DepPolyMgr::reviseNegIVConstraint(IN Poly const& from,
-                                    IN Poly const& to,
-                                    IN OUT DepPoly & cs)
+void DepPolyMgr::reviseNegIVConstraint(
+        Poly const& from,
+        Poly const& to,
+        IN OUT DepPoly & cs)
 {
     Vector<INT> coeff;
     buildMapIVCoeff(from, to, coeff);
@@ -1099,19 +1110,18 @@ void DepPolyMgr::reviseNegIVConstraint(IN Poly const& from,
 }
 
 
-/* Build dependency polyhedra from->to of given array access pair.
-'from': source of dependence.
-'to': target of dependence.
-'dpvec': contained computed dependence polyhedra.
-'is_reverse': build the dependence of reversed direction, to->from.
-*/
-void DepPolyMgr::build(IN Poly const& from,
-                        IN Poly const& to,
-                        IN AccMat const& from_acc,
-                        IN AccMat const& to_acc,
-                        IN VarConstraintMat const* vc,
-                        OUT DepVec & dpvec,
-                        bool is_reverse)
+//Build dependency polyhedra from->to of given array access pair.
+//'from': source of dependence.
+//'to': target of dependence.
+//'dpvec': contained computed dependence polyhedra.
+//'is_reverse': build the dependence of reversed direction, to->from.
+void DepPolyMgr::build(Poly const& from,
+                       Poly const& to,
+                       AccMat const& from_acc,
+                       AccMat const& to_acc,
+                       VarConstraintMat const* vc,
+                       OUT DepVec & dpvec,
+                       bool is_reverse)
 {
     ASSERT0(POLY_domain_rhs_idx(from) == POLY_domain_rhs_idx(to));
     UINT const nvar = from.get_num_of_var();
@@ -1215,10 +1225,11 @@ FIN:
 }
 
 
-DepVec * DepPolyMgr::get_dpvec(IN Poly const& from,
-                                IN Poly const& to,
-                                IN AccMat const& am1,
-                                IN AccMat const& am2)
+DepVec * DepPolyMgr::get_dpvec(
+        Poly const& from,
+        Poly const& to,
+        AccMat const& am1,
+        AccMat const& am2)
 {
     return m_dh.find(from, to, am1, am2);
 }
@@ -1231,11 +1242,12 @@ LOOP INDEPENDENT analysis:
 'include_depth': build causality condition from depth 1 to p-1
     or to p if the parameter is true.
 */
-void DepPolyMgr::buildCommonEquation(Poly const& from,
-                                        Poly const& to,
-                                        INT depth,
-                                        bool include_depth,
-                                        OUT RMat & res)
+void DepPolyMgr::buildCommonEquation(
+        Poly const& from,
+        Poly const& to,
+        INT depth,
+        bool include_depth,
+        OUT RMat & res)
 {
     //DomainMat const* from_domain = POLY_domain(from);
     ScheduleMat const* from_sch = POLY_sche(from);
@@ -1278,11 +1290,12 @@ void DepPolyMgr::buildCommonEquation(Poly const& from,
 
 
 //Build Loop Carried Dependence: from(A|¦£)p + 1 ¡Üto(A|¦£)p at depth p.
-void DepPolyMgr::buildLoopCarried(Poly const& from,
-                                    Poly const& to,
-                                    bool is_reverse,
-                                    UINT depth,
-                                    OUT RMat & res)
+void DepPolyMgr::buildLoopCarried(
+        Poly const& from,
+        Poly const& to,
+        bool is_reverse,
+        UINT depth,
+        OUT RMat & res)
 {
     if (depth == 0) { return; }
 
@@ -1339,11 +1352,12 @@ void DepPolyMgr::buildLoopCarried(Poly const& from,
 
 //Build Loop Independent Dependence Relation: from(A|¦£) == to(A|¦£),
 //depth is in 1~p, where p is stmt-depth.
-void DepPolyMgr::buildLoopIndependent(Poly const& from,
-                                        Poly const& to,
-                                        bool, //is_reverse
-                                        UINT depth,
-                                        OUT RMat & res)
+void DepPolyMgr::buildLoopIndependent(
+        Poly const& from,
+        Poly const& to,
+        bool, //is_reverse
+        UINT depth,
+        OUT RMat & res)
 {
     if (depth == 0) { return; }
     ASSERT0(POLY_domain(from)->get_col_size() ==
@@ -1357,28 +1371,28 @@ void DepPolyMgr::buildLoopIndependent(Poly const& from,
 }
 
 
-/* Build Syntax Order Relation:
-(¦Âfrom) == (¦Âto), depth is in 0~p-1.
-(¦Âfrom)+1¡Ü(¦Âto), at depth p.
-*/
-void DepPolyMgr::buildSynOrderRelation(Poly const& from,
-                                            Poly const& to,
-                                            bool is_reverse,
-                                            UINT depth,
-                                            OUT RMat & res)
+//Build Syntax Order Relation:
+//(¦Âfrom) == (¦Âto), depth is in 0~p-1.
+//(¦Âfrom)+1¡Ü(¦Âto), at depth p.
+void DepPolyMgr::buildSynOrderRelation(
+        Poly const& from,
+        Poly const& to,
+        bool is_reverse,
+        UINT depth,
+        OUT RMat & res)
 {
     ScheduleMat const* from_sch = POLY_sche(from);
     ScheduleMat const* to_sch = POLY_sche(to);
     ASSERT0(depth <= from_sch->get_stmt_depth() &&
-             depth <= to_sch->get_stmt_depth());
+            depth <= to_sch->get_stmt_depth());
     INT from_order = from_sch->get_stmt_order(depth);
     INT to_order = to_sch->get_stmt_order(depth);
     ASSERT0(from_order >= 0 && to_order >= 0);
     UINT const dp_rhs_idx = from.get_num_of_var() * 2;
 
-    /* TODO: Quickly check.
-    There is not loop-independent dependence
-    if (¦Âfrom) != (¦Âto) while    depth is in 1~p-1. */
+    //TODO: Quickly check.
+    //There is not loop-independent dependence
+    //if (¦Âfrom) != (¦Âto) while    depth is in 1~p-1.
     if (depth > 0) {
         Lineq linq(&res, dp_rhs_idx);
         for (INT u = 0; u <= (INT)depth - 1; u++) {
@@ -1407,16 +1421,17 @@ void DepPolyMgr::buildSynOrderRelation(Poly const& from,
 
 
 //Compute dependenc vector and add into hash table.
-DepVec * DepPolyMgr::buildDepPoly(Poly const& from,
-                                    Poly const& to,
-                                    AccMat const& from_acc,
-                                    AccMat const& to_acc,
-                                    VarConstraintMat const* vc,
-                                    bool is_reverse)
+DepVec * DepPolyMgr::buildDepPoly(
+        Poly const& from,
+        Poly const& to,
+        AccMat const& from_acc,
+        AccMat const& to_acc,
+        VarConstraintMat const* vc,
+        bool is_reverse)
 {
     DepVec lcldpvec(0, 0);
     buildDepPoly(from, to, from_acc,
-                  to_acc, vc, lcldpvec, is_reverse);
+                 to_acc, vc, lcldpvec, is_reverse);
     if (lcldpvec.get_last_idx() == -1) {
         return NULL;
     }
@@ -1433,13 +1448,14 @@ DepVec * DepPolyMgr::buildDepPoly(Poly const& from,
 
 
 //Compute dependenc vector and add into hash table.
-void DepPolyMgr::buildDepPoly(Poly const& from,
-                                Poly const& to,
-                                AccMat const& from_acc,
-                                AccMat const& to_acc,
-                                VarConstraintMat const* vc,
-                                OUT DepVec & dpvec,
-                                bool is_reverse)
+void DepPolyMgr::buildDepPoly(
+        Poly const& from,
+        Poly const& to,
+        AccMat const& from_acc,
+        AccMat const& to_acc,
+        VarConstraintMat const* vc,
+        OUT DepVec & dpvec,
+        bool is_reverse)
 {
     if (&from == &to && &from_acc == &to_acc) {
         /* TODO:Check cyclic dep.
@@ -1483,11 +1499,11 @@ void DepPolyMgr::get_all_dep_poly(IN OUT List<DepPoly*> & lst)
 }
 
 
-/* Add one local variable, the column is next to 'rhs_idx'.
-and this operation will affect domain, access matrix.
-Return column position of new local variable.
-NOTICE: The operation of DepPoly will generate two local variable,
-    but we only return the idx of the second. */
+//Add one local variable, the column is next to 'rhs_idx'.
+//and this operation will affect domain, access matrix.
+//Return column position of new local variable.
+//NOTICE: The operation of DepPoly will generate two local variable,
+//    but we only return the idx of the second.
 void DepPolyMgr::insertLocalVar(OUT UINT * lv1_idx, OUT UINT * lv2_idx)
 {
     INT new_lv1 = -1;
@@ -1550,9 +1566,10 @@ void DepPolyMgr::removeLocalVar()
 
 
 //Extract coefficient of map-iv matrix to dependence polyhedron.
-void DepPolyMgr::buildMapIVCoeff(Poly const& from,
-                                    Poly const& to,
-                                    OUT Vector<INT> & coeff)
+void DepPolyMgr::buildMapIVCoeff(
+        Poly const& from,
+        Poly const& to,
+        OUT Vector<INT> & coeff)
 {
     ScheduleMat const* sm_from = POLY_sche(from);
     ScheduleMat const* sm_to = POLY_sche(to);
@@ -1573,9 +1590,10 @@ void DepPolyMgr::buildMapIVCoeff(Poly const& from,
 
 
 //Return variable constrains if there exist negative one.
-VarConstraintMat * DepPolyMgr::buildVarConstraint(Poly const& from,
-                                Poly const& to,
-                                OUT VarConstraintMat & vc)
+VarConstraintMat * DepPolyMgr::buildVarConstraint(
+        Poly const& from,
+        Poly const& to,
+        OUT VarConstraintMat & vc)
 {
     ScheduleMat const* sm_from = POLY_sche(from);
     ASSERT0(sm_from->get_num_of_var() == POLY_sche(to)->get_num_of_var());
@@ -1583,13 +1601,11 @@ VarConstraintMat * DepPolyMgr::buildVarConstraint(Poly const& from,
     Vector<INT> coeff;
     buildMapIVCoeff(from, to, coeff);
     ASSERT0(coeff.get_last_idx() + 1 ==
-            (INT)(sm_from->get_num_of_var() +
-                  sm_from->get_num_of_var()));
+            (INT)(sm_from->get_num_of_var() + sm_from->get_num_of_var()));
     Lineq lin(NULL);
     RMat tmp;
     lin.initVarConstraint(&coeff, tmp,
-                sm_from->get_num_of_var() +
-                sm_from->get_num_of_var());
+        sm_from->get_num_of_var() + sm_from->get_num_of_var());
     vc.copy(tmp);
     return &vc;
 }
@@ -1666,8 +1682,11 @@ void AccMat::surroundAccByLoop()
 }
 
 
-void AccMat::dump(IN FILE * h,    IN Vector<CHAR*> & var_name,
-                    Poly const& p, UINT indent)
+void AccMat::dump(
+        FILE * h,
+        IN Vector<CHAR*> & var_name,
+        Poly const& p,
+        UINT indent)
 {
     UINT i,j;
     CHAR buf[64];
@@ -1929,7 +1948,7 @@ void AccMgr::insertLocalVar(UINT rhs_idx)
 }
 
 
-bool AccMgr::is_read(IN AccMat const& acc_mat) const
+bool AccMgr::is_read(AccMat const& acc_mat) const
 {
     if (m_read_vec.get(ACC_MAT_id(acc_mat)) != NULL) {
         return true;
@@ -1938,7 +1957,7 @@ bool AccMgr::is_read(IN AccMat const& acc_mat) const
 }
 
 
-bool AccMgr::is_write(IN AccMat const& acc_mat) const
+bool AccMgr::is_write(AccMat const& acc_mat) const
 {
     if (m_write_vec.get(ACC_MAT_id(acc_mat)) != NULL) {
         return true;
@@ -2111,7 +2130,7 @@ void ScheduleMat::get_iter_mat(OUT RMat & A)
 }
 
 
-void ScheduleMat::set_iter_mat(IN RMat const& A)
+void ScheduleMat::set_iter_mat(RMat const& A)
 {
     UINT num_of_iv = get_max_depth();
     for (UINT d = 1; d <= num_of_iv; d++) {
@@ -2145,7 +2164,7 @@ void ScheduleMat::get_gamma_mat(OUT RMat & G)
 }
 
 
-void ScheduleMat::set_gamma_mat(IN RMat const& G)
+void ScheduleMat::set_gamma_mat(RMat const& G)
 {
     UINT num_of_g = get_num_of_gamma();
     if (num_of_g == 0) {
@@ -2199,7 +2218,7 @@ INT ScheduleMat::mapDepth2IV(UINT depth) const
             }
         }
     }
-    ASSERT0(0);
+    UNREACH();
     return -1;
 }
 
@@ -2407,17 +2426,16 @@ void ScheduleMat::dump(IN FILE * h, Poly const&)
     for (i = 0; i < m_map_iv.get_row_size(); i++) {
         for (UINT j = 0; j < m_map_iv.get_col_size(); j++) {
             fprintf(h, "%s", format_rational(m_map_iv.get(i, j),
-                                            buf, false));
+                                             buf, false));
         }
         fprintf(h, "\n");
     }
 }
 
 
-/* Perform loop interchange.
-'iv_idx1': index-variable, and -1 means moving iv_idx1 to be outermost.
-'iv_idx2': index-variable, and -1 means moving iv_idx1 to be outermost.
-*/
+//Perform loop interchange.
+//'iv_idx1': index-variable, and -1 means moving iv_idx1 to be outermost.
+//'iv_idx2': index-variable, and -1 means moving iv_idx1 to be outermost.
 void ScheduleMat::interchange(INT iv_idx1, INT iv_idx2)
 {
     if (iv_idx1 == iv_idx2) return;
@@ -2485,10 +2503,8 @@ void DomainMat::removeLoop(UINT iv_idx)
 }
 
 
-/*
-'iv_idx1': index-variable, and -1 means moving iv_idx1 to be outermost.
-'iv_idx2': index-variable, and -1 means moving iv_idx1 to be outermost.
-*/
+//'iv_idx1': index-variable, and -1 means moving iv_idx1 to be outermost.
+//'iv_idx2': index-variable, and -1 means moving iv_idx1 to be outermost.
 void DomainMat::interchange(INT iv_idx1, INT iv_idx2)
 {
     if (iv_idx1 == -1) {
@@ -2502,9 +2518,10 @@ void DomainMat::interchange(INT iv_idx1, INT iv_idx2)
 }
 
 
-void DomainMat::dump(IN FILE * h,
-                      IN Vector<CHAR*> & var_name,
-                      Poly const& p)
+void DomainMat::dump(
+        IN FILE * h,
+        IN Vector<CHAR*> & var_name,
+        Poly const& p)
 {
     UINT i;
     CHAR buf[64];
@@ -3031,7 +3048,7 @@ NOTCIE:
                 S1
                 S2 if(j==6)
 */
-bool Poly::grow_depth(UINT depth, IN RMat const* domain_constrains)
+bool Poly::grow_depth(UINT depth, RMat const* domain_constrains)
 {
     if (depth <= get_max_depth()) return false;
 
@@ -3126,7 +3143,7 @@ void Poly::removeLocalVarColumns(IN OUT RMat & lv_cols)
 }
 
 
-void Poly::insertLocalVarColumns(IN RMat const& lv_cols)
+void Poly::insertLocalVarColumns(RMat const& lv_cols)
 {
     ASSERT0(POLY_locvar_idx(*this) == -1);
     UINT rhs_idx = POLY_domain_rhs_idx(*this);
@@ -3247,7 +3264,7 @@ PolyTree * PolyTreeMgr::insert(IN Poly * p, IN OUT PolyTree * root)
     ASSERT(sorder >= 0, ("depth 0 is inexistent"));
     while (sorder != -1) {
         for (INT i = 0; i <= sorder; i++) {
-            ASSERT0(0);
+            UNREACH();
         }
         sorder = sch->get_stmt_order(++depth);
     }
@@ -3466,11 +3483,12 @@ bool PolyTran::stripmine(IN OUT Poly & poly,
 }
 
 
-bool PolyTran::stripmine(IN OUT List<Poly*> & lst,
-                          UINT iv_idx,
-                          UINT B,
-                          OUT UINT * changed_iv_idx,
-                          OUT UINT * generated_iv_idx)
+bool PolyTran::stripmine(
+        IN OUT List<Poly*> & lst,
+        UINT iv_idx,
+        UINT B,
+        OUT UINT * changed_iv_idx,
+        OUT UINT * generated_iv_idx)
 {
     bool first = true;
     UINT c = 0, g = 0;
@@ -3521,9 +3539,10 @@ NOTICE: Each polyhedron in 'lst' must have been in lexical order!
 'scop_poly_lst': all STMTs in SCOP.
 'depth': indicates depth of SCoP that attempt to merge,
     and fuse depth 0 is permitted. */
-bool PolyTran::fusion(IN List<Poly*> & lst,
-                    IN OUT List<Poly*> & scop_poly_lst,
-                    UINT depth)
+bool PolyTran::fusion(
+        IN List<Poly*> & lst,
+        IN OUT List<Poly*> & scop_poly_lst,
+        UINT depth)
 {
     Poly * head = lst.get_head();
     Poly * p;
@@ -3810,9 +3829,12 @@ bool PolyTran::tiling(IN OUT Poly & poly,
 'changed_iv_idx': record the new position of 'iv_idx' after inserting a loop.
 'generated_iv_idx': record position of the inserted loop.
     This loop is always the loop that be used to walk through tiles. */
-bool PolyTran::tiling(IN OUT List<Poly*> & lst, UINT depth, UINT B,
-                        OUT UINT * changed_depth,
-                        OUT UINT * generated_depth)
+bool PolyTran::tiling(
+        IN OUT List<Poly*> & lst,
+        UINT depth,
+        UINT B,
+        OUT UINT * changed_depth,
+        OUT UINT * generated_depth)
 {
     bool first = true;
     UNUSED(first);
@@ -3871,10 +3893,11 @@ e.g: Split loop nest at depth 2, and the splitting point stmt is S2
 'red_depth': true if one intend reduce the depth of splitted STMT.
 'depth': indicates depth that attempt to split.
 */
-bool PolyTran::fission(IN OUT List<Poly*> & lst,
-                        IN OUT List<Poly*> & scop_poly_lst,
-                        IN Poly & split_p,
-                        UINT depth)
+bool PolyTran::fission(
+        IN OUT List<Poly*> & lst,
+        IN OUT List<Poly*> & scop_poly_lst,
+        IN Poly & split_p,
+        UINT depth)
 {
     if (depth == 0 || lst.get_elem_count() == 1) return false;
     Poly * p;
@@ -3993,13 +4016,14 @@ bool PolyTran::fission(IN OUT List<Poly*> & lst,
 
 //Nonsingular schedule transformation.
 //'t': Nonsingular transformation matrix.
-bool PolyTran::nonsingular(IN Poly & poly,
-                            IN RMat & t,
-                            OUT RMat * pstride,
-                            OUT RMat * pidx_map,
-                            OUT RMat * pofst,
-                            OUT RMat * pmul,
-                            bool tran_domain)
+bool PolyTran::nonsingular(
+        IN Poly & poly,
+        IN RMat & t,
+        OUT RMat * pstride,
+        OUT RMat * pidx_map,
+        OUT RMat * pofst,
+        OUT RMat * pmul,
+        bool tran_domain)
 {
     ASSERT0(poly.get_num_of_localvar() == 0);
     if (!t.is_quad() || t.get_row_size() != poly.get_num_of_var()) {
@@ -4083,13 +4107,14 @@ bool PolyTran::nonsingular(IN Poly & poly,
 /* Singular schedule transformation.
 't': singular transformation matrix.
     rows of 't' must be mutually independent. */
-bool PolyTran::singular(IN Poly & poly,
-                        IN RMat & t,
-                        OUT RMat * pstride,
-                        OUT RMat * pidx_map,
-                        OUT RMat * pofst,
-                        OUT RMat * pmul,
-                        bool tran_domain)
+bool PolyTran::singular(
+        IN Poly & poly,
+        IN RMat & t,
+        OUT RMat * pstride,
+        OUT RMat * pidx_map,
+        OUT RMat * pofst,
+        OUT RMat * pmul,
+        bool tran_domain)
 {
     if (t.is_nonsig()) {
         return nonsingular(poly, t, pstride,
@@ -4224,8 +4249,8 @@ e.g: Delay STMT by N iterations.
 
 't': transformation matrix. It must have same dimension as constant
 part of domain, including the constant-symbols-column. */
-bool PolyTran::shift(IN Poly & poly, IN UINT depth,
-                    IN UINT pv_idx, IN INT shift_val)
+bool PolyTran::shift(IN Poly & poly, UINT depth,
+                    UINT pv_idx, INT shift_val)
 {
     ScheduleMat * sch = POLY_sche(poly);
     sch->set_mapDepth2PV(depth, pv_idx, shift_val);
@@ -4243,7 +4268,7 @@ void PolyTran::dump_poly_tree(PolyTree * t, INT indent)
         while (i > 0) { fprintf(h, "  "); i--; }
         switch (POLY_TREE_type(t)) {
         case POLY_TREE_UNDEF:
-            ASSERT0(0);
+            UNREACH();
             break;
         case POLY_TREE_LOOP:
             {
@@ -4263,8 +4288,10 @@ void PolyTran::dump_poly_tree(PolyTree * t, INT indent)
 }
 
 
-PolyTree * PolyTran::_scan(IN List<Poly*> & plst,
-                        PolyTreeMgr & ptmgr, INT depth)
+PolyTree * PolyTran::_scan(
+        IN List<Poly*> & plst,
+        PolyTreeMgr & ptmgr,
+        INT depth)
 {
     Vector<List<Poly*>*> kid_poly_lst;
 
@@ -4378,14 +4405,15 @@ e.g:
     start,end idx of S1 are 0,2, and start,end idx of S2 are 3,6.
     It is similar for lambda-var.
 */
-void PolyTran::step_1(IN DepGraph & g,
-                    IN OUT Vector<UINT> & start_u_idx,
-                    IN OUT Vector<UINT> & end_u_idx,
-                    IN OUT Vector<UINT> & start_lam_idx,
-                    IN OUT Vector<UINT> & end_lam_idx,
-                    IN OUT Vector<Poly*> & poly_vec,
-                    IN OUT UINT * u_count,
-                    IN OUT UINT * lam_count)
+void PolyTran::step_1(
+        IN DepGraph & g,
+        IN OUT Vector<UINT> & start_u_idx,
+        IN OUT Vector<UINT> & end_u_idx,
+        IN OUT Vector<UINT> & start_lam_idx,
+        IN OUT Vector<UINT> & end_lam_idx,
+        IN OUT Vector<Poly*> & poly_vec,
+        IN OUT UINT * u_count,
+        IN OUT UINT * lam_count)
 {
     *u_count = 0;
     *lam_count = 0;
@@ -4440,16 +4468,17 @@ void PolyTran::step_1(IN DepGraph & g,
 
 
 //Construct formal equations which variable is u-variable and ¦Ë-variable.
-void PolyTran::step_2(IN DepGraph & g,
-                    IN OUT RMat & sys,
-                    IN OUT Vector<RMat*> & theta_vec,
-                    IN OUT Vector<RMat*> & lam_vec,
-                    IN Vector<UINT> const& start_u_idx,
-                    IN Vector<UINT> const& end_u_idx,
-                    IN Vector<UINT> const& start_lam_idx,
-                    IN Vector<UINT> const& end_lam_idx,
-                    IN UINT u_count,
-                    IN UINT lam_count)
+void PolyTran::step_2(
+        IN DepGraph & g,
+        IN OUT RMat & sys,
+        IN OUT Vector<RMat*> & theta_vec,
+        IN OUT Vector<RMat*> & lam_vec,
+        IN Vector<UINT> const& start_u_idx,
+        IN Vector<UINT> const& end_u_idx,
+        IN Vector<UINT> const& start_lam_idx,
+        IN Vector<UINT> const& end_lam_idx,
+        UINT u_count,
+        UINT lam_count)
 {
     INT num_iv = -1; /*num of i,j,k... CSt, N,M...*/
     INT c;
@@ -4646,12 +4675,13 @@ void PolyTran::step_2(IN DepGraph & g,
 }
 
 
-void PolyTran::step_3_1(IN OUT DepGraph & g,
-                        Poly const* p,
-                        RMat const& sol,
-                        Vector<RMat*> const& theta_vec,
-                        Vector<UINT> const& start_u_idx,
-                        Vector<UINT> const& end_u_idx)
+void PolyTran::step_3_1(
+        IN OUT DepGraph & g,
+        Poly const* p,
+        RMat const& sol,
+        Vector<RMat*> const& theta_vec,
+        Vector<UINT> const& start_u_idx,
+        Vector<UINT> const& end_u_idx)
 {
     INT i = POLY_id(*p), j;
     INT rhs_idx = POLY_domain_rhs_idx(*p);
@@ -4706,11 +4736,12 @@ void PolyTran::step_3_1(IN OUT DepGraph & g,
 
 
 //Compute schedule matrix for each Poly.
-void PolyTran::step_3(IN OUT DepGraph & g,
-                      RMat const& sol,
-                      Vector<RMat*> const& theta_vec,
-                      Vector<UINT> const& start_u_idx,
-                      Vector<UINT> const& end_u_idx)
+void PolyTran::step_3(
+        IN OUT DepGraph & g,
+        RMat const& sol,
+        Vector<RMat*> const& theta_vec,
+        Vector<UINT> const& start_u_idx,
+        Vector<UINT> const& end_u_idx)
 {
     INT c;
     for (Vertex * v = g.get_first_vertex(c);
@@ -4813,18 +4844,19 @@ void PolyTran::step_4(IN DepGraph & g, OUT RMat & ub)
     //Remove redundant constrains.
     Lineq lin(NULL);
     if (!lin.reduce(ub, new_rhs_idx, false)) {
-        ASSERT0(0);
+        UNREACH();
     }
 }
 
 
-void PolyTran::dump_lambda_info(IN DepPoly const* dp,
-                                 IN Poly const* from,
-                                 IN Poly const* to,
-                                 IN Vector<UINT> const& start_lam_idx,
-                                 IN Vector<UINT> const& end_lam_idx,
-                                    IN Vector<RMat*> const& lam_vec,
-                                 IN FILE * h)
+void PolyTran::dump_lambda_info(
+        DepPoly const* dp,
+        Poly const* from,
+        Poly const* to,
+        IN Vector<UINT> const& start_lam_idx,
+        IN Vector<UINT> const& end_lam_idx,
+        IN Vector<RMat*> const& lam_vec,
+        IN FILE * h)
 {
     ASSERT0(dp != NULL);
     INT i = DEP_POLY_id(*dp);
@@ -4895,13 +4927,14 @@ void PolyTran::dump_lambda_info(IN DepPoly const* dp,
 }
 
 
-void PolyTran::dump_poly_info(IN RMat const& sol,
-                               IN Poly const* p,
-                               IN Vector<UINT> const& start_u_idx,
-                               IN Vector<UINT> const& end_u_idx,
-                               IN Vector<Poly*> const&, //poly_vec
-                               IN Vector<RMat*> const& theta_vec,
-                               IN FILE * h)
+void PolyTran::dump_poly_info(
+        RMat const& sol,
+        Poly const* p,
+        IN Vector<UINT> const& start_u_idx,
+        IN Vector<UINT> const& end_u_idx,
+        IN Vector<Poly*> const&, //poly_vec
+        IN Vector<RMat*> const& theta_vec,
+        IN FILE * h)
 {
     ASSERT0(p != NULL);
     INT i = POLY_id(*p);
@@ -5040,16 +5073,17 @@ void PolyTran::dump_poly_info(IN RMat const& sol,
 }
 
 
-void PolyTran::fea_dump(IN DepGraph & g,
-                         IN RMat const& sol,
-                         IN Vector<UINT> const& start_u_idx,
-                         IN Vector<UINT> const& end_u_idx,
-                         IN Vector<UINT> const& start_lam_idx,
-                         IN Vector<UINT> const& end_lam_idx,
-                         IN Vector<Poly*> const& poly_vec,
-                         IN Vector<RMat*> const& theta_vec,
-                         IN Vector<RMat*> const& lam_vec,
-                         IN FILE * h)
+void PolyTran::fea_dump(
+        IN DepGraph & g,
+        RMat const& sol,
+        IN Vector<UINT> const& start_u_idx,
+        IN Vector<UINT> const& end_u_idx,
+        IN Vector<UINT> const& start_lam_idx,
+        IN Vector<UINT> const& end_lam_idx,
+        IN Vector<Poly*> const& poly_vec,
+        IN Vector<RMat*> const& theta_vec,
+        IN Vector<RMat*> const& lam_vec,
+        IN FILE * h)
 {
     for (INT i = 0; i <= poly_vec.get_last_idx(); i++) {
         Poly const* p = poly_vec.get(i);

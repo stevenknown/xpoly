@@ -538,9 +538,9 @@ Return true if permutation is necessary, otherwise return false.
     inside out.
 'm': dependence matrix, that columns indicate depedence vector.
 */
-bool LoopTran::permuteOutZeroRows(OUT RMat & t, IN RMat const& m)
+bool LoopTran::permuteOutZeroRows(OUT RMat & t, RMat const& m)
 {
-    BMAT zerorow(m.get_row_size(), 1); //column vector
+    BMat zerorow(m.get_row_size(), 1); //column vector
     bool has_nonzero = false;
     for (UINT i = 0; i < m.get_row_size(); i++) {
         if (m.is_rowequ(i, 0)) {
@@ -1429,7 +1429,7 @@ void GEN_C::genlimits(IN List<RMat*> & limits,
                         IN RMat * pofst,
                         IN RMat * pmul,
                         IN CHAR * name,
-                        IN bool is_del)
+                        bool is_del)
 {
     ASSERT(m_is_init == true, ("not yet initialized"));
     ASSERT(limits.get_elem_count() > 0, ("unmatch coeff matrix info"));
