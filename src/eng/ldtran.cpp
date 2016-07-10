@@ -311,9 +311,11 @@ NOTICE:
     This function generates transforming matrix in order to
     parallel innermost loop of DO loop nest.
     ONLY supports distance dependence so far. */
-bool LoopTran::parallelInnerLoops(OUT RMat & t,
-                                    IN DVECS const& dvec,
-                                    UINT dep_level, UINT option)
+bool LoopTran::parallelInnerLoops(
+        OUT RMat & t,
+        DVECS const& dvec,
+        UINT dep_level,
+        UINT option)
 {
     ASSERT(dep_level < dvec.get_row_size(), ("out of rowsize"));
     if (!FullyPermute(t, dvec)) {
@@ -424,7 +426,7 @@ NOTICE:
     This function also can be used to transform loop nest to gain the
     most spacial locality since all dependencies are represented by
     inner loops. */
-bool LoopTran::parallelOuterLoops(OUT RMat & t, IN DVECS const& dvec)
+bool LoopTran::parallelOuterLoops(OUT RMat & t, DVECS const& dvec)
 {
     //1. Fully permutability. 'dvec' should be column convention.
     if (!FullyPermute(t, dvec)) {
@@ -489,7 +491,7 @@ bool LoopTran::parallelOuterLoops(OUT RMat & t, IN DVECS const& dvec)
 
 //Paralleling outer and inner loops as much as possible.
 //Algorithm to maximize degrees of parallelism.
-bool LoopTran::parallelMostLoops(OUT RMat & t, IN DVECS const& dvec)
+bool LoopTran::parallelMostLoops(OUT RMat & t, DVECS const& dvec)
 {
     UINT dep_level = 0;
     DVECS const * pdvec = &dvec;
@@ -599,7 +601,7 @@ Return true if the transforming matrix has found, otherwise return false.
 
 NOTICE:
     'dvec' use column convention. */
-bool LoopTran::FullyPermute(OUT RMat & t, IN DVECS const& dvec)
+bool LoopTran::FullyPermute(OUT RMat & t, DVECS const& dvec)
 {
     t.reinit(dvec.get_row_size(), dvec.get_row_size());
     if (is_fully_permutable(dvec)) {
@@ -743,7 +745,7 @@ FIN:
 
 //Return true if all elements are greater than or equals 0.
 //'dvec': dependence matrix, each column indicate dependence vector.
-bool LoopTran::is_fully_permutable(IN DVECS const& dvec)
+bool LoopTran::is_fully_permutable(DVECS const& dvec)
 {
     for (UINT i = 0; i < dvec.get_row_size(); i++) {
         for (UINT j = 0; j < dvec.get_col_size(); j++) {
@@ -758,7 +760,7 @@ bool LoopTran::is_fully_permutable(IN DVECS const& dvec)
 
 
 //Check dependence vectors if innermost loop parallelizable.
-bool LoopTran::is_innermost_loop_parallelizable(IN DVECS const& dvec)
+bool LoopTran::is_innermost_loop_parallelizable(DVECS const& dvec)
 {
     for (INT j = 0; j < (INT)dvec.get_col_size(); j++) {
         DD dd = dvec.get(dvec.get_row_size() - 1,j);
@@ -785,7 +787,7 @@ bool LoopTran::is_innermost_loop_parallelizable(IN DVECS const& dvec)
 //Return true if dependence matrix is legal in which elements is
 //lexicographically positive.
 //'dvec': dependence matrix, each column indicate dependence vector.
-bool LoopTran::is_legal(IN DVECS const& dvec)
+bool LoopTran::is_legal(DVECS const& dvec)
 {
     for (UINT j = 0; j < dvec.get_col_size(); j++) {
         for (UINT i = 0; i < dvec.get_row_size(); i++) {

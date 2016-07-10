@@ -367,7 +367,7 @@ public:
     RMat * get_from_quasi_func(Edge const* e) const;
     RMat * get_to_quasi_func(Edge const* e) const;
     RMat * get_sch_mat(Poly const* p);
-    inline DepPolyMgr * get_orig_dep_mgr() { return &m_orig_dpmgr; }
+    DepPolyMgr * get_orig_dep_mgr() { return &m_orig_dpmgr; }
 
     void rebuild(IN List<Poly*> & lst, bool is_build_graph = false);
 
@@ -386,11 +386,11 @@ public:
 //
 //START AccMat
 //
-/* The designation of artifical array which can be privatized.
-  General_Reduction
-  Close_Phi
-  Cross_BB_scalar_dependence
-  Commutative_Associative_Reduction */
+//The designation of artifical array which can be privatized.
+//  General_Reduction
+//  Close_Phi
+//  Cross_BB_scalar_dependence
+//  Commutative_Associative_Reduction
 #define ACC_MAT_id(a)            ((a).id)
 #define ACC_MAT_arr_id(a)        ((a).array_base_id)
 class AccMat : public RMat {
@@ -478,10 +478,10 @@ protected:
     //Rows indicate depth, cols indicate iv_idx.
     VarConstraintMat m_map_iv;
 
-    /* Index of column of static statment/loop syntactic
-    order, and starting with 0.
-    Columns from m_syn_order_idx to
-    get_col_size() - 1 composes the Gamma(¦£) matrix. */
+    //Index of column of static statment/loop syntactic
+    //order, and starting with 0.
+    //Columns from m_syn_order_idx to
+    //get_col_size() - 1 composes the Gamma(¦£) matrix.
     UINT m_syn_order_idx;
 
     //Record the depth of STMT. It less than or equal
@@ -490,22 +490,22 @@ protected:
 public:
     void init(UINT loop_nest_dim, UINT num_of_cst_sym);
     void copy(IN ScheduleMat const& s);
-    inline UINT get_max_depth() const { return m_syn_order_idx; }
-    inline UINT get_syn_order_idx() const { return m_syn_order_idx; }
+    UINT get_max_depth() const { return m_syn_order_idx; }
+    UINT get_syn_order_idx() const { return m_syn_order_idx; }
     void set_stmt_order(UINT depth, UINT order);
     INT get_stmt_order(UINT depth) const;
     void set_stmt_depth(UINT depth);
-    inline UINT get_stmt_depth() const { return m_stmt_depth; }
+    UINT get_stmt_depth() const { return m_stmt_depth; }
     UINT get_num_of_gamma() const;
-    inline UINT get_num_of_var() const { return get_syn_order_idx(); }
-    inline INT get_gamma_idx() const
+    UINT get_num_of_var() const { return get_syn_order_idx(); }
+    INT get_gamma_idx() const
     { return get_num_of_gamma() > 0 ? m_syn_order_idx + 1 : -1; }
     void get_iter_mat(OUT RMat & A);
     void set_iter_mat(RMat const& A);
     void get_gamma_mat(OUT RMat & G);
     void set_gamma_mat(RMat const& G);
-    inline VarConstraintMat const* get_map_iv() const { return &m_map_iv; }
-    inline VarConstraintMat * get_map_iv_m() { return &m_map_iv; }
+    VarConstraintMat const* get_map_iv() const { return &m_map_iv; }
+    VarConstraintMat * get_map_iv_m() { return &m_map_iv; }
 
     INT mapIV2Depth(UINT iv_idx) const;
     INT mapDepth2IV(UINT depth) const;
@@ -592,20 +592,20 @@ protected:
 public:
     UINT id; //unique id.
 
-    /* The context describes known restrictions concerning the parameters
-    and relations in between the parameters.
-
-        void f(char a, unsigned short b)
-        {
-            c = 2*a + b;
-            A[c] = ...
-        }
-
-    Here we can add these restrictions to the context:
-
-        -128 <= a <= 127
-        0 <= b <= 65535
-        c = 2*a + b */
+    //The context describes known restrictions concerning the parameters
+    //and relations in between the parameters.
+    //
+    //    void f(char a, unsigned short b)
+    //    {
+    //        c = 2*a + b;
+    //        A[c] = ...
+    //    }
+    //
+    //Here we can add these restrictions to the context:
+    //
+    //    -128 <= a <= 127
+    //    0 <= b <= 65535
+    //    c = 2*a + b
     RMat * context;
     LocalVarMat * locvar_constrains; //record local variable constrains
     DomainMat * domain;
@@ -749,26 +749,26 @@ public:
 //
 //START PolyTran
 //
-/* Polytope, formed as Ax<=b, where A is an integer coefficient
-matrix, vector x belongs to Z(n).
-Poly defines a group of convex integer polyhedron.
-
-Polyhedral information consists of three components:
-iteration domains, schedules, and data accesses,
-and the domains are defined by the loop bounds.
-The translation from any compiler's IR to Poly builds
-the iteration domains and schedule for each statement.
-
-Scattering Polyhedra:
-    A transformation function that is a transform in
-    the polyhedral model that maps, for each statement,
-    the original dynamic and static time to a new execution order.
-    These transformation functions are also called scattering polyhedra.
-
-The iteration domain for statement does not describe
-the order in which the iterations are executed.
-The execution order, or dynamic time, is defined by
-the scattering dimensions of the scattering polyhedra. */
+//Polytope, formed as Ax<=b, where A is an integer coefficient
+//matrix, vector x belongs to Z(n).
+//Poly defines a group of convex integer polyhedron.
+//
+//Polyhedral information consists of three components:
+//iteration domains, schedules, and data accesses,
+//and the domains are defined by the loop bounds.
+//The translation from any compiler's IR to Poly builds
+//the iteration domains and schedule for each statement.
+//
+//Scattering Polyhedra:
+//    A transformation function that is a transform in
+//    the polyhedral model that maps, for each statement,
+//    the original dynamic and static time to a new execution order.
+//    These transformation functions are also called scattering polyhedra.
+//
+//The iteration domain for statement does not describe
+//the order in which the iterations are executed.
+//The execution order, or dynamic time, is defined by
+//the scattering dimensions of the scattering polyhedra.
 class PolyTran {
     bool m_is_init;
     SMemPool * m_pool;
@@ -806,20 +806,22 @@ class PolyTran {
                 IN Vector<UINT> const& end_u_idx);
     void step_4(IN DepGraph & g,
                 OUT RMat & ub);
-    void dump_lambda_info(DepPoly const* dp,
-                          Poly const* from,
-                          Poly const* to,
-                          IN Vector<UINT> const& start_lam_idx,
-                          IN Vector<UINT> const& end_lam_idx,
-                          IN Vector<RMat*> const& lam_vec,
-                          IN FILE * h);
-    void dump_poly_info(RMat const& sol,
-                        Poly const* p,
-                        IN Vector<UINT> const& start_u_idx,
-                        IN Vector<UINT> const& end_u_idx,
-                        IN Vector<Poly*> const& poly_vec,
-                        IN Vector<RMat*> const& theta_vec,
-                        IN FILE * h);
+    void dump_lambda_info(
+            DepPoly const* dp,
+            Poly const* from,
+            Poly const* to,
+            IN Vector<UINT> const& start_lam_idx,
+            IN Vector<UINT> const& end_lam_idx,
+            IN Vector<RMat*> const& lam_vec,
+            IN FILE * h);
+    void dump_poly_info(
+            RMat const& sol,
+            Poly const* p,
+            IN Vector<UINT> const& start_u_idx,
+            IN Vector<UINT> const& end_u_idx,
+            IN Vector<Poly*> const& poly_vec,
+            IN Vector<RMat*> const& theta_vec,
+            IN FILE * h);
     void fea_dump(IN DepGraph & g,
                   RMat const& sol,
                   IN Vector<UINT> const& start_u_idx,

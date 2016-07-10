@@ -103,16 +103,17 @@ public:
 
     //Functions to generate automatically unimodular/nonsingular
     //transforming matrix for various loop transformations
-    bool FullyPermute(OUT RMat & t, IN DVECS const& dvec);
-    bool is_fully_permutable(IN DVECS const& dvec);
-    bool is_legal(IN DVECS const& dvec);
-    bool is_innermost_loop_parallelizable(IN DVECS const& dvec);
+    bool FullyPermute(OUT RMat & t, DVECS const& dvec);
+    bool is_fully_permutable(DVECS const& dvec);
+    bool is_legal(DVECS const& dvec);
+    bool is_innermost_loop_parallelizable(DVECS const& dvec);
     bool permuteOutZeroRows(OUT RMat & t, RMat const& m);
     bool parallelInnerLoops(OUT RMat & t,
-                            IN DVECS const& dvec, UINT dep_level = 0,
+                            DVECS const& dvec,
+                            UINT dep_level = 0,
                             UINT option = OP_DELTA | OP_PERM);
-    bool parallelOuterLoops(OUT RMat & t, IN DVECS const& dvec);
-    bool parallelMostLoops(OUT RMat & t, IN DVECS const& dvec);
+    bool parallelOuterLoops(OUT RMat & t, DVECS const& dvec);
+    bool parallelMostLoops(OUT RMat & t, DVECS const& dvec);
 };
 
 

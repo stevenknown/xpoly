@@ -30,7 +30,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //This file is an example to use xpoly as an loop transformation tool.
 
-class GPOLY : public POLY {
+class GPOLY : public Poly {
 public:
     virtual ~GPOLY() {}
     void dump_arr_base(poly_bb * pbb, FILE * h, INT indent);
@@ -39,22 +39,22 @@ public:
 
 
 //Reference Dependence Graph
-class REF_DG : public DG {
+class REF_DG : public DepGraph {
 public:
-    REF_DG(IN LIST<POLY*> & lst);
+    REF_DG(IN List<Poly*> & lst);
     virtual ~REF_DG();
-    virtual bool is_red_stmt(IN POLY const& p);
-    void dump(IN LIST<POLY*> & lst, bool is_detail);
+    virtual bool is_red_stmt(Poly const& p);
+    void dump(IN List<Poly*> & lst, bool is_detail);
 };
 
 
 //Stmt Dependence Graph
 #define SDG_stmt_vec(g)        ((g).stmt_vec)
 #define SDG_stmt_bs(g)        ((g).stmt_bs)
-class STMT_DG : public GRAPH {
+class STMT_DG : public Graph {
 public:
-    BITSET stmt_bs; //record stmt in scop.
-    SVECTOR<basic_block> stmt_vec;
+    BitSet stmt_bs; //record stmt in scop.
+    Vector<basic_block> stmt_vec;
 
     STMT_DG(scop * s);
     virtual ~STMT_DG() {}
@@ -62,10 +62,10 @@ public:
 };
 
 
-class GPOLY_MGR : public POLY_MGR {
+class GPOLY_MGR : public PolyMgr {
 public:
     virtual ~GPOLY_MGR() {}
-    virtual POLY * new_poly()
+    virtual Poly * newPoly()
     {
         return new GPOLY();
     }

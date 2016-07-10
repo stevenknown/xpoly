@@ -106,13 +106,13 @@ static CHAR const*  g_bitnames[] = {
 //
 void GPOLY::dump_arr_base(poly_bb * pbb, FILE * h, INT indent)
 {
-    ACC_MGR * mgr = POLY_acc_mgr(*this);
+    AccMgr * mgr = POLY_acc_mgr(*this);
     if (mgr == NULL) {
         return;
     }
     fprintf(h, "\n");
     for (INT i = 0; i <= mgr->get_max_arr_base_id(); i++) {
-        LIST<ACC_MAT*> * lst = mgr->map_arr_id2refs(i);
+        List<AccMat*> * lst = mgr->mapArrayId2Refs(i);
         if (lst != NULL) {
             fprintf(h, "\nARRAY_BASE(%d) : ", i);
             poly_dr_p pdr;
@@ -140,7 +140,7 @@ void GPOLY::dump(CHAR * name)
 {
     if (name == NULL) { name = "local_gcc_dump"; }
 
-    POLY::dump(name);
+    Poly::dump(name);
 
     poly_bb * pbb = (poly_bb*)POLY_stmt(*this);
     FILE * h = fopen(name, "a+");
@@ -161,7 +161,7 @@ void GPOLY::dump(CHAR * name)
 //
 //START REF_DG
 //
-REF_DG::REF_DG(IN LIST<POLY*> & lst) : DG(lst, false)
+REF_DG::REF_DG(IN List<Poly*> & lst) : DepGraph(lst, false)
 {}
 
 
@@ -170,37 +170,37 @@ REF_DG::~REF_DG()
 
 
 //Return true when this poly 'p' related stmt is a reduction statement.
-bool REF_DG::is_red_stmt(POLY const& p)
+bool REF_DG::is_red_stmt(Poly const& p)
 {
     poly_bb const* pbb = (poly_bb const*)POLY_stmt(p);
     return PBB_IS_REDUCTION(pbb);
 }
 
 
-void REF_DG::dump(IN LIST<POLY*> & lst, bool is_detail)
+void REF_DG::dump(IN List<Poly*> & lst, bool is_detail)
 {
-    C<POLY*> * it1;
-    C<POLY*> * it2;
+    C<Poly*> * it1;
+    C<Poly*> * it2;
     FILE * h = fopen(DUMP_FILE_NAME, "a+");
     fprintf(h, "\nSTMT DEP PAIRS:");
-    for (POLY const* p1 = lst.get_head(&it1);
+    for (Poly const* p1 = lst.get_head(&it1);
          p1 != NULL; p1 = lst.get_next(&it1)) {
-        for (POLY const* p2 = lst.get_head(&it2);
+        for (Poly const* p2 = lst.get_head(&it2);
              p2 != NULL; p2 = lst.get_next(&it2)) {
-            ACC_MGR const* mgr1 = POLY_acc_mgr(*p1);
-            ACC_MGR const* mgr2 = POLY_acc_mgr(*p2);
-            LIST<ACC_MAT*> lst1, lst2;
+            AccMgr const* mgr1 = POLY_acc_mgr(*p1);
+            AccMgr const* mgr2 = POLY_acc_mgr(*p2);
+            List<AccMat*> lst1, lst2;
             mgr1->get_read_refs(lst1);
             mgr1->get_write_refs(lst1);
             mgr2->get_read_refs(lst2);
             mgr2->get_write_refs(lst2);
-            C<ACC_MAT*> * iit1;
-            C<ACC_MAT*> * iit2;
+            C<AccMat*> * iit1;
+            C<AccMat*> * iit2;
             poly_bb * pbb1 = (poly_bb *)POLY_stmt(*p1);
             poly_bb * pbb2 = (poly_bb *)POLY_stmt(*p2);
-            for (ACC_MAT const* am1 = lst1.get_head(&iit1);
+            for (AccMat const* am1 = lst1.get_head(&iit1);
                  am1 != NULL; am1 = lst1.get_next(&iit1)) {
-                for (ACC_MAT const* am2 = lst2.get_head(&iit2);
+                for (AccMat const* am2 = lst2.get_head(&iit2);
                      am2 != NULL; am2 = lst2.get_next(&iit2)) {
                     if (m_orig_dpmgr.get_dpvec(*p1, *p2, *am1, *am2) != NULL) {
                         fprintf(h, "\n\tBB%d -> BB%d",
@@ -214,35 +214,35 @@ FIN:        ;
     }
 
     fprintf(h, "\nDependence Relation:");
-    for (POLY const* p1 = lst.get_head(&it1);
+    for (Poly const* p1 = lst.get_head(&it1);
          p1 != NULL; p1 = lst.get_next(&it1)) {
-        for (POLY const* p2 = lst.get_head(&it2);
+        for (Poly const* p2 = lst.get_head(&it2);
              p2 != NULL; p2 = lst.get_next(&it2)) {
-            ACC_MGR const* mgr1 = POLY_acc_mgr(*p1);
-            ACC_MGR const* mgr2 = POLY_acc_mgr(*p2);
-            LIST<ACC_MAT*> lst1, lst2;
+            AccMgr const* mgr1 = POLY_acc_mgr(*p1);
+            AccMgr const* mgr2 = POLY_acc_mgr(*p2);
+            List<AccMat*> lst1, lst2;
             mgr1->get_read_refs(lst1);
             mgr1->get_write_refs(lst1);
             mgr2->get_read_refs(lst2);
             mgr2->get_write_refs(lst2);
-            C<ACC_MAT*> * iit1;
-            C<ACC_MAT*> * iit2;
+            C<AccMat*> * iit1;
+            C<AccMat*> * iit2;
             poly_bb * pbb1 = (poly_bb *)POLY_stmt(*p1);
             poly_bb * pbb2 = (poly_bb *)POLY_stmt(*p2);
-            for (ACC_MAT const* am1 = lst1.get_head(&iit1);
+            for (AccMat const* am1 = lst1.get_head(&iit1);
                  am1 != NULL; am1 = lst1.get_next(&iit1)) {
-                for (ACC_MAT const* am2 = lst2.get_head(&iit2);
+                for (AccMat const* am2 = lst2.get_head(&iit2);
                      am2 != NULL; am2 = lst2.get_next(&iit2)) {
-                    DPVEC * dpvec = m_orig_dpmgr.get_dpvec(*p1, *p2, *am1, *am2);
+                    DepVec * dpvec = m_orig_dpmgr.get_dpvec(*p1, *p2, *am1, *am2);
                     if (dpvec != NULL) {
                         fprintf(h, "\n\tBB%d:ACC%d -> BB%d:ACC%d",
                                 pbb_index(pbb1), ACC_MAT_id(*am1),
                                 pbb_index(pbb2), ACC_MAT_id(*am2));
                         for (INT i = 0; i <= dpvec->get_last_idx(); i++) {
-                            DEP_POLY_LIST * dpl = dpvec->get(i);
+                            DepPolyList * dpl = dpvec->get(i);
                             if (dpl != NULL) {
                                 fprintf(h, " : ");
-                                for (DEP_POLY * dp = dpl->get_head();
+                                for (DepPoly * dp = dpl->get_head();
                                      dp != NULL; dp = dpl->get_next()) {
                                     UINT flag = DEP_POLY_flag(*dp);
                                     if (HAVE_FLAG(flag, DEP_LOOP_CARRIED)) {
@@ -253,7 +253,7 @@ FIN:        ;
                                         fprintf(h, "LOOP_INDEP, ");
                                         REMOVE_FLAG(flag, DEP_LOOP_INDEP);
                                     }
-                                    IS_TRUE(flag == 0, ("still has flag?"));
+                                    ASSERT(flag == 0, ("still has flag?"));
                                 }
                             }
                         }
@@ -291,7 +291,7 @@ STMT_DG::STMT_DG(scop * s)
         FOR_EACH_EDGE(e, ei, bb->preds) {
             basic_block from = e->src;
             basic_block to = e->dest;
-            add_edge(from->index, to->index);
+            addEdge(from->index, to->index);
             if (e->probability) {
                 //fprintf(file, " [%.1f%%] ",
                 //          e->probability * 100.0 / REG_BR_PROB_BASE);
@@ -315,7 +315,7 @@ STMT_DG::STMT_DG(scop * s)
         FOR_EACH_EDGE(e, ei, bb->succs) {
             basic_block from = e->src;
             basic_block to = e->dest;
-            add_edge(from->index, to->index);
+            addEdge(from->index, to->index);
             if (e->probability) {
                 //fprintf(file, " [%.1f%%] ",
                 //          e->probability * 100.0 / REG_BR_PROB_BASE);
@@ -341,26 +341,26 @@ STMT_DG::STMT_DG(scop * s)
 
 void STMT_DG::dump(CHAR * name)
 {
-    IS_TRUE(m_is_init, ("not yet initialized."));
+    ASSERT(m_is_init, ("not yet initialized."));
     if (name == NULL) {
         name = GRAPH_VCG_NAME;
     }
     unlink(name);
     FILE * h = fopen(name, "a+");
-    IS_TRUE(h, ("%s create failed!!!",name));
+    ASSERT(h, ("%s create failed!!!",name));
 
     fprintf(h, "\n/*\n\n");
     for (INT i = SDG_stmt_bs(*this).get_first();
          i != -1; i = SDG_stmt_bs(*this).get_next(i)) {
         basic_block bb = SDG_stmt_vec(*this).get(i);
-        IS_TRUE0(bb != NULL);
+        ASSERT0(bb != NULL);
         dump_bb(bb, h, 2);
         fprintf(h, "\n---------\n");
     }
     fprintf(h, "\n*/\n\n");
 
     fprintf(h, "graph: {"
-              "title: \"GRAPH\"\n"
+              "title: \"Graph\"\n"
               "shrink:  15\n"
               "stretch: 27\n"
               "layout_downfactor: 1\n"
@@ -395,7 +395,7 @@ void STMT_DG::dump(CHAR * name)
               "edge.color: darkgreen\n");
 
     //Print node
-    for (VERTEX * v = m_vertexs.get_first(); v;  v = m_vertexs.get_next()) {
+    for (Vertex * v = m_vertexs.get_first(); v;  v = m_vertexs.get_next()) {
         if (SDG_stmt_bs(*this).is_contain(VERTEX_vid(v))) {
             fprintf(h, "\nnode: { title:\"%d\" label: \"%d\" shape: circle color: gold}",
                     VERTEX_vid(v), VERTEX_vid(v));
@@ -406,7 +406,7 @@ void STMT_DG::dump(CHAR * name)
     }
 
     //Print edge
-    for (EDGE * e = m_edges.get_first(); e;  e = m_edges.get_next()) {
+    for (Edge * e = m_edges.get_first(); e;  e = m_edges.get_next()) {
         fprintf(h, "\nedge: { sourcename:\"%d\" targetname:\"%d\" %s}",
                 VERTEX_vid(EDGE_from(e)),
                 VERTEX_vid(EDGE_to(e)),
@@ -494,7 +494,7 @@ static void compute_constrain_num(IN ppl_const_Polyhedron_t ph,
             (*num_of_eq)++;
             break;
         default:
-            IS_TRUE(0, ("Not yet implemented"));
+            ASSERT(0, ("Not yet implemented"));
         }
     }
     ppl_delete_Constraint_System_const_iterator(iter);
@@ -508,8 +508,8 @@ Return rhs_idx of the linear system.
 'ineq': add or create matrix to record inequalities.
 'eq': add or create matrix to record equalities. */
 static UINT create_mat(IN ppl_const_Polyhedron_t ph,
-                        IN OUT INTMAT & ineq,
-                        IN OUT INTMAT & eq)
+                        IN OUT INTMat & ineq,
+                        IN OUT INTMat & eq)
 {
     //Construct matrix.
     UINT num_of_ineq, num_of_eq;
@@ -567,8 +567,8 @@ static UINT create_mat(IN ppl_const_Polyhedron_t ph,
 
         //get the number of dimension(columns)
         ppl_Constraint_space_dimension(coeff, &dim);
-        IS_TRUE0(dim < col_size);
-        INTMAT tmp(1, col_size);
+        ASSERT0(dim < col_size);
+        INTMat tmp(1, col_size);
         for (UINT j = 0; j < dim; j++) {
             //get coeff[j], c := coeff[j]
             ppl_Constraint_coefficient(coeff, j, c);
@@ -588,7 +588,7 @@ static UINT create_mat(IN ppl_const_Polyhedron_t ph,
         switch (ppl_Constraint_type(coeff)) {
         case PPL_CONSTRAINT_TYPE_GREATER_THAN:
             tmp.mul(-1);
-            //Fallthrough
+            //Fall through
         case PPL_CONSTRAINT_TYPE_LESS_THAN:
             tmp.set(0, rhs_idx, tmp.get(0, rhs_idx) - 1);
             break;
@@ -599,7 +599,7 @@ static UINT create_mat(IN ppl_const_Polyhedron_t ph,
         case PPL_CONSTRAINT_TYPE_EQUAL:
             is_ineq = false;
             break;
-        default: IS_TRUE(0, ("Not yet implemented"));
+        default: ASSERT(0, ("Not yet implemented"));
         }
 
         if (is_ineq) {
@@ -622,8 +622,8 @@ static UINT create_mat(IN ppl_const_Polyhedron_t ph,
 //Create constrains.
 //Walk through a list of polyhedron, and return the rhs_idx.
 static UINT create_mat_lst(IN ppl_Pointset_Powerset_C_Polyhedron_t ps,
-                            OUT INTMAT & ineq,
-                            OUT INTMAT & eq)
+                            OUT INTMat & ineq,
+                            OUT INTMat & eq)
 {
     UINT tot_dim = compute_max_dim(ps); //iter_var + lcl_var + parameters_var
     ppl_Pointset_Powerset_C_Polyhedron_iterator_t iter, end;
@@ -639,7 +639,7 @@ static UINT create_mat_lst(IN ppl_Pointset_Powerset_C_Polyhedron_t ps,
         //get the POLYHEDRON which 'iter' corresponded to.
         ppl_Pointset_Powerset_C_Polyhedron_iterator_dereference(iter, &ph);
         UINT d = create_mat(ph, ineq, eq);
-        IS_TRUE0(d == tot_dim);
+        ASSERT0(d == tot_dim);
     }
     ppl_delete_Pointset_Powerset_C_Polyhedron_iterator(iter);
     ppl_delete_Pointset_Powerset_C_Polyhedron_iterator(end);
@@ -650,15 +650,15 @@ static UINT create_mat_lst(IN ppl_Pointset_Powerset_C_Polyhedron_t ps,
 //Create constrains.
 //Walk through a list of polyhedron, and return the rhs_idx.
 static UINT create_mat_lst(IN ppl_Pointset_Powerset_C_Polyhedron_t ps,
-                            OUT LIST<INTMAT*> & ineq_lst,
-                            OUT LIST<INTMAT*> & eq_lst)
+                            OUT List<INTMat*> & ineq_lst,
+                            OUT List<INTMat*> & eq_lst)
 {
     UINT tot_dim = compute_max_dim(ps); //iter_var + lcl_var + parameters_var
     ppl_Pointset_Powerset_C_Polyhedron_iterator_t iter, end;
     ppl_new_Pointset_Powerset_C_Polyhedron_iterator(&iter);
     ppl_new_Pointset_Powerset_C_Polyhedron_iterator(&end);
 
-    INTMAT ineq, eq;
+    INTMat ineq, eq;
     for (ppl_Pointset_Powerset_C_Polyhedron_iterator_begin(ps, iter),
          ppl_Pointset_Powerset_C_Polyhedron_iterator_end(ps, end);
          !ppl_Pointset_Powerset_C_Polyhedron_iterator_equal_test(iter, end);
@@ -668,12 +668,12 @@ static UINT create_mat_lst(IN ppl_Pointset_Powerset_C_Polyhedron_t ps,
         //get the POLYHEDRON which 'iter' corresponded to.
         ppl_Pointset_Powerset_C_Polyhedron_iterator_dereference(iter, &ph);
         UINT d = create_mat(ph, ineq, eq);
-        IS_TRUE0(d == tot_dim);
+        ASSERT0(d == tot_dim);
         if (ineq.size() != 0) {
-            ineq_lst.append_tail(new INTMAT(ineq));
+            ineq_lst.append_tail(new INTMat(ineq));
         }
         if (eq.size() != 0) {
-            eq_lst.append_tail(new INTMAT(eq));
+            eq_lst.append_tail(new INTMat(eq));
         }
     }
     ppl_delete_Pointset_Powerset_C_Polyhedron_iterator(iter);
@@ -683,26 +683,26 @@ static UINT create_mat_lst(IN ppl_Pointset_Powerset_C_Polyhedron_t ps,
 
 
 //Generate domain matrix.
-static void gen_domain_mat(IN OUT POLY & p,
-                            IN INTMAT & ineq,
-                            IN INTMAT & eq,
-                            IN UINT rhs_idx,
+static void gen_domain_mat(IN OUT Poly & p,
+                            IN INTMat & ineq,
+                            IN INTMat & eq,
+                            UINT rhs_idx,
                             IN poly_bb * pbb)
 {
-    RMAT tineq(ineq), teq(eq);
+    RMat tineq(ineq), teq(eq);
     if (eq.size() != 0) {
-        LINEQ l(&tineq, rhs_idx);
-        l.append_eq(teq);
+        Lineq l(&tineq, rhs_idx);
+        l.appendEquation(teq);
     }
-    IS_TRUE0(pbb_nb_local_vars(pbb) == 0);
-    IS_TRUE0(tineq.get_col_size() == rhs_idx + 1);
-    tineq.mul_of_col(rhs_idx, -1);
+    ASSERT0(pbb_nb_local_vars(pbb) == 0);
+    ASSERT0(tineq.get_col_size() == rhs_idx + 1);
+    tineq.mulOfColumn(rhs_idx, -1);
     UINT new_rhs_idx = 0;
     UINT n_p = pbb_nb_params(pbb);
-    IS_TRUE(n_p == 0, ("Parameter is not support presently."));
+    ASSERT(n_p == 0, ("Parameter is not support presently."));
     UINT n_d = pbb_dim_iter_domain(pbb);
     if (n_p > 0) {
-        LINEQ l(NULL);
+        Lineq l(NULL);
         UINT fs, ls;
         l.move2cstsym(tineq,
                     rhs_idx,
@@ -722,31 +722,31 @@ static void gen_domain_mat(IN OUT POLY & p,
 //Layout of m: is_ineq, scattering_transform, local_vars,
 //iter_domain, gammas, cst.
 //e.g: is_ineq s0 s1 s2 s3 s4 i0 i1 g0, g1, g2, cst
-static void gen_sche_mat(IN OUT POLY & p, IN INTMAT const& m, IN poly_bb * pbb)
+static void gen_sche_mat(IN OUT Poly & p, INTMat const& m, IN poly_bb * pbb)
 {
-    SCH_MAT * sm = POLY_sche(p);
+    ScheduleMat * sm = POLY_sche(p);
     sm->init(POLY_domain_rhs_idx(p), pbb_nb_params(pbb)/*Number of CST SYM*/);
     for (UINT l = 0; l < POLY_domain_rhs_idx(p); l++) {
-        sm->set_map_depth2iv(l+1, l);
+        sm->setMapDepth2IV(l+1, l);
     }
     for (UINT d = 0; d <= pbb_dim_iter_domain(pbb); d++) {
         INT v = m.get(2*d, m.get_col_size() - 1);
-        IS_TRUE(m.get(2*d, 2*d) >= 0 && v <= 0,
+        ASSERT(m.get(2*d, 2*d) >= 0 && v <= 0,
                 ("scattering matrix format has changed!"));
         sm->set_stmt_order(d, -v);
     }
-    IS_TRUE0(POLY_domain_rhs_idx(p) == sm->get_syn_order_idx());
+    ASSERT0(POLY_domain_rhs_idx(p) == sm->get_syn_order_idx());
 }
 
 
 //Generate accessing matrix.
 static void gen_acc_mat(IN poly_dr * pdr,
-                        INTMAT const& ineq,
-                        INTMAT const& eq,
-                        OUT ACC_MAT & am)
+                        INTMat const& ineq,
+                        INTMat const& eq,
+                        OUT AccMat & am)
 {
     poly_bb * pbb = PDR_PBB(pdr);
-    INT a = pdr_alias_set_dim(pdr);
+    INT as = pdr_alias_set_dim(pdr);
     am.reinit(PDR_NB_SUBSCRIPTS(pdr),
               pbb_dim_iter_domain(pbb) + 1 + pbb_nb_params(pbb));
     UINT rhs_idx = pbb_dim_iter_domain(pbb);
@@ -817,11 +817,11 @@ static void gen_acc_mat(IN poly_dr * pdr,
      | i   j   k   a   1
      | 0   0   0  -1   15  = 0
 */
-static UINT gen_acc_mat(IN poly_bb * pbb, OUT ACC_MGR & mgr)
+static UINT gen_acc_mat(IN poly_bb * pbb, OUT AccMgr & mgr)
 {
     poly_dr_p pdr;
-    INTMAT ineq, eq;
-    ACC_MAT am;
+    INTMat ineq, eq;
+    AccMat am;
     for (UINT i = 0; VEC_iterate(poly_dr_p, PBB_DRS(pbb), i, pdr); i++) {
         ineq.clean();
         eq.clean();
@@ -841,7 +841,7 @@ static UINT gen_acc_mat(IN poly_bb * pbb, OUT ACC_MGR & mgr)
         } else if (PDR_TYPE(pdr) == PDR_WRITE) {
             mgr.set_ref(am, false);
         } else {
-            IS_TRUE0(0);
+            UNREACH();
         }
     }
     return 0;
@@ -852,7 +852,7 @@ static UINT gen_acc_mat(IN poly_bb * pbb, OUT ACC_MGR & mgr)
 Caller need to invoke 'ppl_delete_Constraint()' to free memory.
 The last column of r is const term column.
 'is_eq': true if row of 'r' indicates equation. */
-static ppl_Constraint_t convert_ppl_cs(RMAT const& r, UINT row, bool is_eq)
+static ppl_Constraint_t convert_ppl_cs(RMat const& r, UINT row, bool is_eq)
 {
     ppl_Constraint_t cstr;
     ppl_Coefficient_t coef;
@@ -865,13 +865,13 @@ static ppl_Constraint_t convert_ppl_cs(RMAT const& r, UINT row, bool is_eq)
     Value v; //mpt_z
     value_init(v);
     for (UINT j = 0; j < r.get_col_size() - 1; j++) {
-        IS_TRUE0(r.get(row, j).den() == 1);
+        ASSERT0(r.get(row, j).den() == 1);
         value_set_si(v, r.get(row, j).num());
         ppl_assign_Coefficient_from_mpz_t(coef, v);
         ppl_Linear_Expression_add_to_coefficient(expr, j, coef);
     }
 
-    IS_TRUE0(r.get(row, r.get_col_size() - 1).den() == 1);
+    ASSERT0(r.get(row, r.get_col_size() - 1).den() == 1);
     value_set_si(v, r.get(row, r.get_col_size() - 1).num());
     ppl_assign_Coefficient_from_mpz_t(coef, v);
     ppl_Linear_Expression_add_to_inhomogeneous(expr, coef);
@@ -892,7 +892,7 @@ static ppl_Constraint_t convert_ppl_cs(RMAT const& r, UINT row, bool is_eq)
 The last column of r is const term column.
 'is_eq': true if row of 'r' indicates equation. */
 static void convert_ppl_cs(OUT ppl_Constraint_System_t * cs,
-                           RMAT const& r, bool is_eq)
+                           RMat const& r, bool is_eq)
 {
     for (UINT i = 0; i < r.get_row_size(); i++) {
         ppl_Constraint_t c = convert_ppl_cs(r, i, is_eq);
@@ -903,32 +903,32 @@ static void convert_ppl_cs(OUT ppl_Constraint_System_t * cs,
 
 
 //Construct PPL structures.
-static void gen_ppl_domain(IN POLY & p)
+static void gen_ppl_domain(IN Poly & p)
 {
-    DOMAIN_MAT * domain = POLY_domain(p);
-    SCH_MAT * sm = POLY_sche(p);
-    RMAT tmp;
-    domain->inner_col(tmp, 0, p.get_num_of_var() - 1);
+    DomainMat * domain = POLY_domain(p);
+    ScheduleMat * sm = POLY_sche(p);
+    RMat tmp;
+    domain->innerColumn(tmp, 0, p.get_num_of_var() - 1);
     tmp.mul(-1);
     //COL:s0 s1 s2 s3 s4 l0 l1 i0 i1 g0 g1 g2 C
-    //RMAT cldomain(domain->get_row_size(), sm->get_row_size() +
+    //RMat cldomain(domain->get_row_size(), sm->get_row_size() +
     //                                    p.get_num_of_localvar() +
     //                                    p.get_num_of_var() +
     //                                    p.get_num_of_param() + 1);
-    RMAT cldomain(domain->get_row_size(), p.get_num_of_var() +
+    RMat cldomain(domain->get_row_size(), p.get_num_of_var() +
                   p.get_num_of_param() + 1);
     //INT c = sm->get_row_size() + p.get_num_of_localvar();
     INT c = 0;
     cldomain.set_cols(c, c + tmp.get_col_size() - 1, tmp, 0);
     UINT d = c + tmp.get_col_size();
-    IS_TRUE0(d + p.get_num_of_param() == cldomain.get_col_size() - 1);
+    ASSERT0(d + p.get_num_of_param() == cldomain.get_col_size() - 1);
     if (p.get_num_of_param() > 0) {
         cldomain.set_cols(d, d + p.get_num_of_param() - 1,
-                          *(RMAT*)domain, POLY_domain_rhs_idx(p) + 1);
+                          *(RMat*)domain, POLY_domain_rhs_idx(p) + 1);
     }
     cldomain.set_cols(cldomain.get_col_size() - 1,
                       cldomain.get_col_size() - 1,
-                      *(RMAT*)domain, POLY_domain_rhs_idx(p));
+                      *(RMat*)domain, POLY_domain_rhs_idx(p));
 
     ppl_Constraint_System_t cs;
     ppl_new_Constraint_System(&cs);
@@ -945,7 +945,7 @@ static void gen_ppl_domain(IN POLY & p)
     //Updata pbb.
     poly_bb * pbb = (poly_bb*)POLY_stmt(p);
 #ifdef _DEBUG_
-    INTMAT ineq,eq;
+    INTMat ineq,eq;
     create_mat_lst(PBB_DOMAIN(pbb), ineq, eq);
     ineq.clean();
     eq.clean();
@@ -957,13 +957,13 @@ static void gen_ppl_domain(IN POLY & p)
 
 
 //Updates the scattering of PBB.
-static void gen_ppl_sc(IN POLY & p)
+static void gen_ppl_sc(IN Poly & p)
 {
-    SCH_MAT * sm = POLY_sche(p);
+    ScheduleMat * sm = POLY_sche(p);
     UINT row_size = sm->get_row_size();
     UINT col_size = sm->get_row_size() +
                     p.get_num_of_var() + p.get_num_of_param() + 1;
-    RMAT r(row_size, col_size);
+    RMat r(row_size, col_size);
     UINT i;
 
     //Colums:s0 s1 s2 s3 s4 l0 l1 i0 i1 g0 g1 g2 C
@@ -971,14 +971,14 @@ static void gen_ppl_sc(IN POLY & p)
         r.set(i, i, 1);
     }
     INT c = row_size;
-    r.set_cols(c, c + sm->get_num_of_var() - 1, (RMAT&)*sm, 0);
+    r.set_cols(c, c + sm->get_num_of_var() - 1, (RMat&)*sm, 0);
     if (sm->get_num_of_gamma() > 0) {
         INT d = c + sm->get_num_of_var();
         r.set_cols(d, d + sm->get_num_of_gamma() - 1,
-                   (RMAT&)*sm, sm->get_syn_order_idx() + 1);
+                   (RMat&)*sm, sm->get_syn_order_idx() + 1);
     }
-    r.set_cols(col_size - 1, col_size - 1, (RMAT&)*sm, sm->get_syn_order_idx());
-    r.mul_of_cols(c, col_size - 1, -1);
+    r.set_cols(col_size - 1, col_size - 1, (RMat&)*sm, sm->get_syn_order_idx());
+    r.mulOfColumns(c, col_size - 1, -1);
 
     poly_bb * pbb = (poly_bb*)POLY_stmt(p);
     ppl_Constraint_System_t cs;
@@ -996,15 +996,15 @@ static void gen_ppl_sc(IN POLY & p)
 
 
 //Construct PPL structures.
-static void    gen_ppl_acc(IN POLY & p)
+static void    gen_ppl_acc(IN Poly & p)
 {
     poly_bb * pbb = (poly_bb*)POLY_stmt(p);
 }
 
 
-static void poly2cloog(OUT scop * s, IN POLY_MGR & pm, IN LIST<POLY*> & lst)
+static void poly2cloog(OUT scop * s, IN PolyMgr & pm, IN List<Poly*> & lst)
 {
-    POLY * p = lst.get_head();
+    Poly * p = lst.get_head();
     if (p == NULL) { return; }
 
     graphite_dim_t nb = p->get_num_of_param();
@@ -1019,7 +1019,7 @@ static void poly2cloog(OUT scop * s, IN POLY_MGR & pm, IN LIST<POLY*> & lst)
 
 
 //Convert PPL polyhedra information to xpoly representation.
-static void ppl2poly(scop * s, POLY_MGR & pm, OUT LIST<POLY*> & lst)
+static void ppl2poly(scop * s, PolyMgr & pm, OUT List<Poly*> & lst)
 {
     poly_bb * pbb;
     for (UINT i = 0; VEC_iterate(poly_bb_p, SCOP_BBS(s), i, pbb); i++) {
@@ -1027,15 +1027,15 @@ static void ppl2poly(scop * s, POLY_MGR & pm, OUT LIST<POLY*> & lst)
         if (ppl_Pointset_Powerset_C_Polyhedron_is_empty(domain_list)) {
             continue;
         }
-        POLY * p = pm.create_poly();
+        Poly * p = pm.createPoly();
         POLY_id(*p) = pbb_index(pbb);
         POLY_stmt(*p) = pbb;
         lst.append_tail(p);
-        INTMAT ineq, eq;
+        INTMat ineq, eq;
 
         //init domain matrix
         UINT rhs_idx = create_mat_lst(domain_list, ineq, eq);
-        IS_TRUE0(pbb_dim_iter_domain(pbb) + pbb_nb_params(pbb) +
+        ASSERT0(pbb_dim_iter_domain(pbb) + pbb_nb_params(pbb) +
                  pbb_nb_local_vars(pbb)  == rhs_idx);
         gen_domain_mat(*p, ineq, eq, rhs_idx, pbb);
 
@@ -1043,7 +1043,7 @@ static void ppl2poly(scop * s, POLY_MGR & pm, OUT LIST<POLY*> & lst)
         ineq.clean();
         eq.clean();
         create_mat(PBB_ORIGINAL_SCATTERING(pbb), ineq, eq);
-        IS_TRUE0(ineq.size() == 0);
+        ASSERT0(ineq.size() == 0);
         gen_sche_mat(*p, eq, pbb);
 
         //init access matrix
@@ -1057,21 +1057,21 @@ static void ppl2poly(scop * s, POLY_MGR & pm, OUT LIST<POLY*> & lst)
 //This function demostrates how to use xpoly to transform
 //gcc graphite scop.
 static void example_trans(scop_p s,
-                        IN LIST<POLY*> & lst,
-                        OUT LIST<POLY*> & after_lst,
+                        IN List<Poly*> & lst,
+                        OUT List<Poly*> & after_lst,
                         GPOLY_MGR & pm)
 {
     REF_DG * rdg = new REF_DG(lst);
-    LIST<POLY*> before_lst;
-    pm.copy_poly_list(lst, before_lst);
+    List<Poly*> before_lst;
+    pm.copyPolyList(lst, before_lst);
     INT const u = lst.get_head()->get_max_depth();
-    POLY_TRAN pt;
-    POLY * p = NULL;
+    PolyTran pt;
+    Poly * p = NULL;
     bool cpy = true;
 
-    LIST<POLY*> tmp;
-    if (cpy) pm.copy_poly_list(lst, before_lst);
-    if (cpy) pm.copy_poly_list(lst, after_lst);
+    List<Poly*> tmp;
+    if (cpy) pm.copyPolyList(lst, before_lst);
+    if (cpy) pm.copyPolyList(lst, after_lst);
 
     //Perform loop transformations.
     for (int i = 0; i <= u; i++) {
@@ -1079,56 +1079,56 @@ static void example_trans(scop_p s,
             if (pt.interchange(after_lst, i, j)) {
                 if (rdg->is_legal(after_lst)) {
                     //Record successful transformation.
-                    if (cpy) pm.copy_poly_list(after_lst, before_lst);
+                    if (cpy) pm.copyPolyList(after_lst, before_lst);
                 } else {
-                    if (cpy) pm.copy_poly_list(before_lst, after_lst);
+                    if (cpy) pm.copyPolyList(before_lst, after_lst);
                 }
             } else {
-                if (cpy) pm.copy_poly_list(before_lst, after_lst);
+                if (cpy) pm.copyPolyList(before_lst, after_lst);
             }
 
             if (pt.reverse(after_lst, j)) {
                 if (rdg->is_legal(after_lst)) {
                     //Record successful transformation.
-                    if (cpy) pm.copy_poly_list(after_lst, before_lst);
+                    if (cpy) pm.copyPolyList(after_lst, before_lst);
                 } else {
-                    if (cpy) pm.copy_poly_list(before_lst, after_lst);
+                    if (cpy) pm.copyPolyList(before_lst, after_lst);
                 }
             } else {
-                if (cpy) pm.copy_poly_list(before_lst, after_lst);
+                if (cpy) pm.copyPolyList(before_lst, after_lst);
             }
 
             if (pt.skew(after_lst, j, i, 1)) {
                 if (rdg->is_legal(after_lst)) {
                     //Record successful transformation.
-                    if (cpy) pm.copy_poly_list(after_lst, before_lst);
+                    if (cpy) pm.copyPolyList(after_lst, before_lst);
                 } else {
-                    if (cpy) pm.copy_poly_list(before_lst, after_lst);
+                    if (cpy) pm.copyPolyList(before_lst, after_lst);
                 }
             } else {
-                if (cpy) pm.copy_poly_list(before_lst, after_lst);
+                if (cpy) pm.copyPolyList(before_lst, after_lst);
             }
 
             UINT changed_iv_idx, generated_iv_idx;
             if (pt.tiling(after_lst, j, 32, &changed_iv_idx,
                           &generated_iv_idx)) {
-                rdg->get_orig_dep_mgr()->insert_loop_before(generated_iv_idx);
-                //rdg->get_orig_dep_mgr()->insert_local_var();
+                rdg->get_orig_dep_mgr()->insertLoopBefore(generated_iv_idx);
+                //rdg->get_orig_dep_mgr()->insertLocalVar();
                 if (rdg->is_legal(after_lst)) {
                     //Record successful transformation.
-                    if (cpy) pm.copy_poly_list(after_lst, before_lst);
+                    if (cpy) pm.copyPolyList(after_lst, before_lst);
                 } else {
-                    if (cpy) pm.copy_poly_list(before_lst, after_lst);
-                    rdg->get_orig_dep_mgr()->remove_loop(generated_iv_idx);
-                    //rdg->get_orig_dep_mgr()->remove_local_var();
+                    if (cpy) pm.copyPolyList(before_lst, after_lst);
+                    rdg->get_orig_dep_mgr()->removeLoop(generated_iv_idx);
+                    //rdg->get_orig_dep_mgr()->removeLocalVar();
                 }
             } else {
-                if (cpy) pm.copy_poly_list(before_lst, after_lst);
+                if (cpy) pm.copyPolyList(before_lst, after_lst);
             }
         }
     }
 
-    pm.free_poly_list(before_lst);
+    pm.freePolyList(before_lst);
     delete rdg;
 }
 
@@ -1148,7 +1148,7 @@ static lst_p find_first_pbb(lst_p lst)
 }
 
 
-static void scan_pbblst(OUT LIST<poly_bb*> & pbblst, IN lst_p lst)
+static void scan_pbblst(OUT List<poly_bb*> & pbblst, IN lst_p lst)
 {
     if (lst == NULL) { return; }
     if (!LST_LOOP_P(lst)) {
@@ -1168,24 +1168,24 @@ static void scan_pbblst(OUT LIST<poly_bb*> & pbblst, IN lst_p lst)
 //transformation: GIMPLE -> GRAPHITE -> GIMPLE.
 bool do_poly_transforms(scop_p scop)
 {
-    LIST<poly_bb*> pbblst;
+    List<poly_bb*> pbblst;
     scan_pbblst(pbblst, SCOP_TRANSFORMED_SCHEDULE(scop));
 
-    LIST<POLY*> lst;
+    List<Poly*> lst;
     GPOLY_MGR pm;
     ppl2poly(scop, pm, lst);
 
     UINT depth = 0;
-    pm.grow_max_depth(lst);
+    pm.growToMaxDepth(lst);
 
-    LIST<POLY*> after_lst;
-    pm.copy_poly_list(lst, after_lst);
+    List<Poly*> after_lst;
+    pm.copyPolyList(lst, after_lst);
     example_trans(scop, lst, after_lst, pm);
-    pm.remove_virtual_depth(after_lst);
+    pm.removeVirtualDepth(after_lst);
     poly2cloog(scop, pm, after_lst);
 
-    pm.free_poly_list(lst);
-    pm.free_poly_list(after_lst);
+    pm.freePolyList(lst);
+    pm.freePolyList(after_lst);
     return true;
 }
 #endif
