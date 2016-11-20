@@ -151,7 +151,7 @@ ASCII g_asc1[] = {
 
 
 //Caculate the number of bits which longer enough to represent given constant.
-UINT computeConstBitLen(LONGLONG v)
+UINT computeConstBitLen(ULONGLONG v)
 {
 #ifdef _VC6_
     if (!(v & 0xffffffffffffff00)) return 8;
@@ -399,7 +399,7 @@ INT xctoi(CHAR const* cl)
 //e.g: cl = '1','2','3','4','5'
 //return 12345.
 //'is_oct': if true, nptr is octal digits.
-LONG xatol(CHAR const* nptr, bool is_oct)
+LONGLONG xatoll(CHAR const* nptr, bool is_oct)
 {
     if (nptr == NULL) return 0;
     while (*nptr == ' ' || *nptr == '\t') {
@@ -409,7 +409,7 @@ LONG xatol(CHAR const* nptr, bool is_oct)
     if (sign == '-' || sign == '+') {
         nptr++;
     }
-    LONG res = 0;
+    LONGLONG res = 0;
     if (nptr[0] == '0' && (nptr[1] == 'x' || nptr[1] == 'X')) { //hex
         nptr += 2;
         UCHAR c = *nptr;
@@ -1244,8 +1244,11 @@ static bool is_exist_mark(CHAR const* format)
 
 
 //Parse string that starts with '%'.
-static bool percent(CHAR * buf, UINT buflen, IN OUT UINT * bufpos,
-                    IN OUT CHAR const** format, va_list stack_start)
+static bool percent(CHAR * buf, 
+                    UINT buflen, 
+                    IN OUT UINT * bufpos,
+                    IN OUT CHAR const** format, 
+                    va_list stack_start)
 {
     //The info related to %, e.g:'%d', can not longer than 255.
     CHAR sbuf[255];
@@ -1476,10 +1479,7 @@ OVER: //Get some problems.
 //Format string and record in buf.
 //buf: output buffer that record string.
 //buflen: length of output buffer.
-CHAR * xsprintf(IN OUT CHAR * buf,
-                UINT buflen,
-                CHAR const* format,
-                ...)
+CHAR * xsprintf(IN OUT CHAR * buf, UINT buflen, CHAR const* format, ...)
 {
     UINT bufpos = 0;
     CHAR ch = *format;
