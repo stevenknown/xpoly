@@ -2,6 +2,7 @@ COM_OBJS +=\
 com/sgraph.o \
 com/smempool.o \
 com/comf.o \
+com/strbuf.o \
 com/bs.o \
 com/rational.o \
 com/flty.o \
