@@ -645,7 +645,7 @@ public:
     bool move2depth(UINT depth);
 
     virtual void dump(IN CHAR * name = NULL);
-    CHAR * dumpbuf(IN OUT CHAR * buf) { sprintf(buf, "..."); return buf; }
+    CHAR const* dumpbuf(OUT StrBuf & buf) { buf.sprint("..."); return buf.buf; }
 
     UINT surroundStmtByLoop();
     void set_var_name(UINT iv_idx, IN CHAR * name);

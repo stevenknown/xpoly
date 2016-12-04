@@ -28,26 +28,25 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __LOOP_DATA_TRAN_H_
 #define __LOOP_DATA_TRAN_H_
 
-/* Loop Transformation
-TOD0: Simplified loop bound
-    CASE1:
-        e.g: test35()
-            new upper loop bound is
-                for (y = 0; y <= min( N, -1+x ); y++)
-            but N alway large than x-1, so the perfectly
-            upper bound should be
-                for (y = 0; y <= (-1+x); y++)
-*/
+//Loop Transformation
+//TOD0: Simplified loop bound
+//    CASE1:
+//        e.g: test35()
+//            new upper loop bound is
+//                for (y = 0; y <= min( N, -1+x ); y++)
+//            but N alway large than x-1, so the perfectly
+//            upper bound should be
+//                for (y = 0; y <= (-1+x); y++)
 #define TGT_VAR_PREFIX "T"
 #define ORG_VAR_PREFIX "I"
 #define CST_SYM_PREFIX "C"
-#define TGT_FLOOR    "FLOOR"
-#define TGT_CEIL    "CEIL"
-#define TGT_LP "zlp.tmp"
+#define TGT_FLOOR      "FLOOR"
+#define TGT_CEIL       "CEIL"
+#define TGT_LP         "zlp.tmp"
 
 //Manner Options
 #define OP_DELTA    1 //premultiply T by delta-matrix
-#define    OP_PERM         2 //premultiply T by classical permuation matrix.
+#define OP_PERM     2 //premultiply T by classical permuation matrix.
 class LoopTran {
     SMemPool * m_pool;
     RMat * m_a; //Records loop limits: Ax <= b
@@ -93,13 +92,14 @@ public:
     void set_param(RMat * m, INT rhs_idx = -1);
 
     //Applying loop transformation.
-    bool transformIterSpace(IN RMat & t,
-                        OUT RMat & stride,
-                        OUT RMat & idx_map,
-                        OUT List<RMat*> & limits,
-                        OUT RMat & ofst,
-                        OUT RMat & mul,
-                        OUT RMat * trA = NULL); //Perform nonunimodular trans.
+    bool transformIterSpace(
+            IN RMat & t,
+            OUT RMat & stride,
+            OUT RMat & idx_map,
+            OUT List<RMat*> & limits,
+            OUT RMat & ofst,
+            OUT RMat & mul,
+            OUT RMat * trA = NULL); //Perform nonunimodular trans.
 
     //Functions to generate automatically unimodular/nonsingular
     //transforming matrix for various loop transformations
@@ -124,8 +124,7 @@ class GEN_C {
     RMat * m_a; //Records loop limits: Ax <= b
     INT m_rhs_idx; //Records starting column of right hand side of equation
                    //or inequlity.
-    CHAR * m_sbuf; //buffer to hold the output string.
-    UINT m_sbufl; //length of m_sbuf.
+    StrBuf m_sbuf; //buffer to hold the output string.
     void * xmalloc(size_t size);
     CHAR ** m_cst_sym;
     CHAR ** m_var_sym;
@@ -140,43 +139,79 @@ public:
     void set_param(RMat * m, INT rhs_idx = -1);
     void set_sym(CHAR ** tgtvar_sym = NULL,
                 CHAR ** orgvar_sym = NULL, CHAR ** cst_sym = NULL);
-    /*
-    Functions to generate code for new loop bound and the mapping
-    code in between iteration space that used in loop body.
-    */
-    CHAR * get_orgvar_sym(OUT CHAR * sbuf, INT varid);
-    CHAR * get_newvar_sym(OUT CHAR * sbuf, INT varid);
-    CHAR * get_cst_sym(OUT CHAR * sbuf, INT varid);
-    void gen_ppl(OUT CHAR sbuf[], INT num);//placeholder
-    void genidxm(OUT CHAR sbuf[], IN RMat & idx_map);
-    bool genofst(OUT CHAR sbuf[], IN RMat & ofst);
-    void genub(OUT CHAR sbuf[], IN RMat * limits, INT ub, INT ivar);
-    void genlb(OUT CHAR sbuf[], IN RMat * limits, INT lb, INT ivar);
-    void genmin(OUT CHAR sbuf[], IN RMat * limits, INT ub1, INT ub2, INT ivar);
-    void genmax(OUT CHAR sbuf[], IN RMat * limits, INT lb1, INT lb2, INT ivar);
-    void genmaxs(OUT CHAR sbuf[], IN RMat * limits,
-                    INT lbnum,    INT * lb, INT ivar);
-    void genmins(OUT CHAR sbuf[], IN RMat * limits,
-                    INT ubnum, INT * ub, INT ivar);
-    void genlinexp(OUT CHAR sbuf[], IN RMat & coeff_vec, INT ivar,
-                    INT comden, bool is_lb, UINT sym_start_cl, UINT num_sc);
-    void gen_loop_start(OUT CHAR sbuf[], INT stride,
-                    IN RMat * limits, IN RMat & ofst, INT mul, INT ivar,
-                    INT * lb, INT lbnum);
-    void gen_loop_end(OUT CHAR sbuf[], INT stride,
-                    IN RMat * limits, IN RMat & ofst, INT mul, INT ivar,
-                    INT * ub, INT ubnum);
-    void gen_loop_step(OUT CHAR sbuf[], INT stride,
-                    IN RMat * limits, IN RMat & ofst, INT mul, INT ivar);
-    void genlimit(OUT CHAR sbuf[], INT stride, IN RMat * limits,
-                    IN RMat & ofst, INT mul, INT ivar);
+    
+    //Functions to generate code for new loop bound and the mapping
+    //code in between iteration space that used in loop body.
+    CHAR const* get_orgvar_sym(OUT StrBuf & sbuf, INT varid);
+    CHAR const* get_newvar_sym(OUT StrBuf & sbuf, INT varid);
+    CHAR const* get_cst_sym(OUT StrBuf & sbuf, INT varid);
+    void gen_ppl(OUT StrBuf & sbuf, INT num);//placeholder
+    void genidxm(OUT StrBuf & sbuf, IN RMat & idx_map);
+    bool genofst(OUT StrBuf & sbuf, IN RMat & ofst);
+    void genub(OUT StrBuf & sbuf, IN RMat * limits, INT ub, INT ivar);
+    void genlb(OUT StrBuf & sbuf, IN RMat * limits, INT lb, INT ivar);
+    void genmin(OUT StrBuf & sbuf, 
+                IN RMat * limits, 
+                INT ub1, 
+                INT ub2, 
+                INT ivar);
+    void genmax(OUT StrBuf & sbuf,  
+                IN RMat * limits, 
+                INT lb1, 
+                INT lb2, 
+                INT ivar);
+    void genmaxs(OUT StrBuf & sbuf, 
+                 IN RMat * limits,
+                 INT lbnum,
+                 INT * lb, 
+                 INT ivar);
+    void genmins(OUT StrBuf & sbuf, 
+                 IN RMat * limits,
+                 INT ubnum, 
+                 INT * ub, 
+                 INT ivar);
+    void genlinexp(OUT StrBuf & sbuf, 
+                   IN RMat & coeff_vec, 
+                   INT ivar,
+                   INT comden, 
+                   bool is_lb, 
+                   UINT sym_start_cl, 
+                   UINT num_sc);
+    void gen_loop_start(OUT StrBuf & sbuf, 
+                        INT stride,
+                        IN RMat * limits, 
+                        IN RMat & ofst, 
+                        INT mul, 
+                        INT ivar,
+                        INT * lb, 
+                        INT lbnum);
+    void gen_loop_end(OUT StrBuf & sbuf, 
+                      INT stride,
+                      IN RMat * limits, 
+                      IN RMat & ofst, 
+                      INT mul, 
+                      INT ivar,
+                      INT * ub, 
+                      INT ubnum);
+    void gen_loop_step(OUT StrBuf & sbuf, 
+                       INT stride,
+                       IN RMat * limits, 
+                       IN RMat & ofst, 
+                       INT mul, 
+                       INT ivar);
+    void genlimit(OUT StrBuf & sbuf, 
+                  INT stride, 
+                  IN RMat * limits,
+                  IN RMat & ofst, 
+                  INT mul, 
+                  INT ivar);
     void genlimits(IN List<RMat*> & limits,
-                    IN RMat * pstride = NULL,
-                    IN RMat * pidx_map = NULL,
-                    IN RMat * pofst = NULL,
-                    IN RMat * pmul = NULL,
-                    IN CHAR * name = NULL,
-                    bool is_del = false);
+                   IN RMat * pstride = NULL,
+                   IN RMat * pidx_map = NULL,
+                   IN RMat * pofst = NULL,
+                   IN RMat * pmul = NULL,
+                   IN CHAR * name = NULL,
+                   bool is_del = false);
 };
 #endif
 

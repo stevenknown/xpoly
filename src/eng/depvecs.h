@@ -41,9 +41,9 @@ typedef enum {
     DT_MISC,
 } DT;
 
-/* Data Dependence.
-If 'dir' is DDT_DIS, that indicate the data dependence is constant, otherwise
-being direction of '+=,-=' or indefinitely. */
+//Data Dependence.
+//If 'dir' is DDT_DIS, that indicate the data dependence is constant, otherwise
+//being direction of '+=,-=' or indefinitely.
 class DD {
 public:
     DT dir;

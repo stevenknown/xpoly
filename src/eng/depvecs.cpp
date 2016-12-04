@@ -27,6 +27,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 @*/
 #include "ltype.h"
 #include "comf.h"
+#include "strbuf.h"
 #include "smempool.h"
 #include "sstl.h"
 #include "matt.h"
@@ -95,10 +96,8 @@ UINT DD_Gt (DD const& a, DD const& b)
                 }
             }
         } else if (b.dir == DT_DIS) { //a is not Dis,b is Dis
-            /*
-            If b > a is false, then b <= a, and a can not equal to b, so
-            the only result is b < a.
-            */
+            //If b > a is false, then b <= a, and a can not equal to b, so
+            //the only result is b < a.
             UINT s = DD_Gt(b, a);
             if (s == DD_TRUE) { return DD_FALSE; }
             else if (s == DD_FALSE) { return DD_TRUE; }
@@ -413,10 +412,9 @@ DVECS& DVECS::operator = (INTMat const& m)
 }
 
 
-/* Assignment of integer value.
-'num': number of value
-'...": value list, type is 'INT'
-*/
+//Assignment of integer value.
+//'num': number of value
+//'...": value list, type is 'INT'
 void DVECS::sete(UINT num, ...)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -441,10 +439,9 @@ void DVECS::sete(UINT num, ...)
 
 
 
-/* Assignment of value.
-'num': number of value
-'dd": value list, type is 'DD'
-*/
+//Assignment of value.
+//'num': number of value
+//'dd": value list, type is 'DD'
 void DVECS::setv(UINT num, Vector<DD> const& dd)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -506,26 +503,28 @@ static void Dvecs_Dumpf_By_Handle(void const* pbasis, FILE * h)
     fprintf(h, "\nMATRIX dump id:%d\n", g_count++);
 
     //start
-    CHAR buf[256];
+    StrBuf buf(64);
     DVECS * pthis = (DVECS*)pbasis;
     for (UINT i = 0; i < pthis->get_row_size(); i++) {
         for (UINT j = 0; j < pthis->get_col_size(); j++) {
             DD dd = pthis->get(i, j);
-            CHAR *blank="";
+            CHAR * blank = "";
             if (dd.dir == DT_DIS) {
-                sprintf(buf, "%-5d", dd.dis);
+                buf.sprint("%-5d", dd.dis);
             } else {
                 //Assuming that the value of dep-distance is maximum
                 //range of no more than 999.
                 switch (dd.dir) {
-                case DT_POS:sprintf(buf, "%s%-3d", ">=", dd.dis);break;
-                case DT_NEG:sprintf(buf, "%s%-3d", "<=", dd.dis);break;
-                case DT_MISC:sprintf(buf, "%s%-3d", " *", dd.dis);break;
-                default:ASSERT(0,("unknown dep type"));
+                case DT_POS: buf.sprint("%s%-3d", ">=", dd.dis); break;
+                case DT_NEG: buf.sprint("%s%-3d", "<=", dd.dis); break;
+                case DT_MISC: buf.sprint("%s%-3d", " *", dd.dis); break;
+                default: ASSERT(0,("unknown dep type"));
                 }
-            }
-            fprintf(h, "%s%s", buf, blank);
+            }            
+
+            fprintf(h, "%s%s", buf.buf, blank);
         }
+        
         fprintf(h, "\n");
     }
     //end
@@ -551,32 +550,29 @@ static void Dvecs_Dumpf(void const* pbasis, CHAR const* name, bool is_del)
 
 static void Dvecs_Dumps(void const* pbasis)
 {
-    printf("\n");
-
-    //start
+    printf("\n");    
     DVECS *pthis = (DVECS*)pbasis;
-    CHAR buf[256];
+    StrBuf buf(64);
     for (UINT i = 0; i < pthis->get_row_size(); i++) {
         for (UINT j = 0; j < pthis->get_col_size(); j++) {
             DD dd = pthis->get(i, j);
-            CHAR *blank="";
+            CHAR * blank = "";
             if (dd.dir == DT_DIS) {
-                sprintf(buf, "%-5d", dd.dis);
+                buf.sprint("%-5d", dd.dis);
             } else {
                 //Assuming that the value of dep-distance is maximum
                 //range of no more than 999.
                 switch (dd.dir) {
-                case DT_POS:sprintf(buf, "%s%-3d", ">=", dd.dis);break;
-                case DT_NEG:sprintf(buf, "%s%-3d", "<=", dd.dis);break;
-                case DT_MISC:sprintf(buf, "%s%-3d", " *", dd.dis);break;
+                case DT_POS: buf.sprint("%s%-3d", ">=", dd.dis); break;
+                case DT_NEG: buf.sprint("%s%-3d", "<=", dd.dis); break;
+                case DT_MISC: buf.sprint("%s%-3d", " *", dd.dis); break;
                 default:ASSERT(0,("unknown dep type"));
                 }
             }
-            printf("%s%s", buf, blank);
+            printf("%s%s", buf.buf, blank);
         }
         printf("\n");
-    }
-    //end
+    }    
     printf("\n");
 }
 
@@ -632,7 +628,7 @@ DVECS operator * (RMat const& a, DVECS const& b)
                 ASSERT(a.get(i,k).den() == 1, ("only permit integer"));
                 tmp = tmp + DD(a.get(i,k).num()) * b.get(k,j);
                 if (tmp.dir == DT_MISC) {
-                    //* + * = *
+                    // * + * = *
                     break;
                 }
             }
@@ -648,7 +644,7 @@ DVECS operator + (RMat const& a, DVECS const& b)
 {
     ASSERT(a.is_init() && b.m_is_init, ("not yet initialize."));
     ASSERT(a.get_row_size() == b.m_row_size &&
-            a.get_col_size() == b.m_col_size, ("invalid matrix type of mul"));
+           a.get_col_size() == b.m_col_size, ("invalid matrix type of mul"));
 
     DVECS c(a.get_row_size(), a.get_col_size());
     for (UINT i = 0; i < a.get_row_size(); i++) {
@@ -665,7 +661,7 @@ DVECS operator - (RMat const& a, DVECS const& b)
 {
     ASSERT(a.is_init() && b.m_is_init, ("not yet initialize."));
     ASSERT(a.get_row_size() == b.m_row_size &&
-            a.get_col_size() == b.m_col_size, ("invalid matrix type of mul"));
+           a.get_col_size() == b.m_col_size, ("invalid matrix type of mul"));
 
     DVECS c(a.get_row_size(), a.get_col_size());
     for (UINT i = 0; i < a.get_row_size(); i++) {
